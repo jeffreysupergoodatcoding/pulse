@@ -57,17 +57,35 @@ function formatScore(s) {
 <style scoped>
 .persona-card { display: flex; flex-direction: column; gap: 10px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-.arch-name { font-weight: 600; font-size: 14px; color: #f1f5f9; }
-.arch-count { font-size: 12px; color: #64748b; }
+.arch-name { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+.arch-count { font-size: 12px; color: var(--text-faint); }
 .sentiment-indicator { font-size: 16px; font-weight: 700; }
-.sentiment-indicator.pos { color: #4ade80; }
-.sentiment-indicator.neg { color: #f87171; }
-.sentiment-indicator.neu { color: #94a3b8; }
-.arch-desc { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+.sentiment-indicator.pos { color: var(--positive); }
+.sentiment-indicator.neg { color: var(--negative); }
+.sentiment-indicator.neu { color: var(--text-muted); }
+.arch-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 .traits { display: flex; flex-wrap: wrap; gap: 4px; }
-.trait-pill { padding: 2px 8px; background: #1e2433; border-radius: 9999px; font-size: 11px; color: #94a3b8; }
+.trait-pill {
+  padding: 2px 8px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 11px; color: var(--text-muted);
+}
 .quotes { display: flex; flex-direction: column; gap: 4px; }
-.quote { font-size: 12px; color: #64748b; font-style: italic; padding: 6px 10px; background: #0d1117; border-radius: 4px; border-left: 2px solid #374151; }
+.quote {
+  font-size: 12px; color: var(--text-muted); font-style: italic;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent);
+}
 .emotion-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.emotion-badge { padding: 2px 8px; background: #2d1b69; color: #c084fc; border-radius: 9999px; font-size: 11px; }
+.emotion-badge {
+  padding: 2px 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+}
 </style>

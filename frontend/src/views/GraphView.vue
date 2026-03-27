@@ -24,7 +24,7 @@
         <div v-if="results.length" class="mt-3">
           <div v-for="(r, i) in results" :key="i" class="search-result">
             <span class="score-pill">{{ r.score?.toFixed(2) }}</span>
-            <span style="font-size:12px;color:#94a3b8">{{ truncate(r.content, 120) }}</span>
+            <span style="font-size:12px;color:var(--text-secondary)">{{ truncate(r.content, 120) }}</span>
           </div>
         </div>
       </div>
@@ -36,7 +36,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { graph as graphApi } from '../api/graph.js'
-import GraphPanel from '../components/GraphPanel.vue'
+import { defineAsyncComponent } from 'vue'
+const GraphPanel = defineAsyncComponent(() => import('../components/GraphPanel.vue'))
 
 const route = useRoute()
 const entityId = route.params.id
@@ -71,6 +72,6 @@ onMounted(loadSentiment)
 </script>
 
 <style scoped>
-.search-result { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid #1e2433; }
-.score-pill { padding: 1px 6px; background: #1e2433; border-radius: 4px; font-size: 10px; color: #64748b; flex-shrink: 0; }
+.search-result { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border-subtle); }
+.score-pill { padding: 1px 6px; background: var(--bg-overlay); border-radius: var(--radius-sm); font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
 </style>

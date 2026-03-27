@@ -73,7 +73,7 @@
             {{ taskStatus.records_new }} new / {{ taskStatus.records_pulled }} pulled
           </div>
           <div v-if="taskStatus.errors?.length" class="error-list mt-2">
-            <div v-for="(e, i) in taskStatus.errors" :key="i" style="font-size:11px;color:#f87171">{{ e }}</div>
+            <div v-for="(e, i) in taskStatus.errors" :key="i" style="font-size:11px;color:var(--negative)">{{ e }}</div>
           </div>
         </div>
       </div>
@@ -84,7 +84,7 @@
         <div v-if="preview.length" class="preview-list mt-3">
           <div v-for="(p, i) in preview.slice(0, 6)" :key="i" class="preview-item">
             <span class="badge badge-neutral" style="margin-right:6px">{{ p.platform }}</span>
-            <span style="font-size:12px;color:#94a3b8">{{ truncate(p.content, 120) }}</span>
+            <span style="font-size:12px;color:var(--text-secondary)">{{ truncate(p.content, 120) }}</span>
           </div>
         </div>
         <div v-else class="text-muted mt-3" style="font-size:12px">No ingested posts yet.</div>
@@ -245,11 +245,11 @@ onMounted(async () => {
 
 <style scoped>
 .source-block { margin-bottom: 14px; }
-.platform-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #e2e8f0; cursor: pointer; margin-bottom: 6px; font-weight: 600; }
+.platform-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer; margin-bottom: 6px; font-weight: 600; }
 .source-input { width: 100%; box-sizing: border-box; font-size: 12px; }
-.progress-bar { height: 6px; background: #1e2433; border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; background: #7c3aed; border-radius: 3px; transition: width .3s; }
+.progress-bar { height: 6px; background: var(--bg-overlay); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
 .preview-list { display: flex; flex-direction: column; gap: 8px; }
-.preview-item { padding: 6px; background: #0d1117; border-radius: 4px; }
-.error-list { background: #1a0a0a; border-radius: 4px; padding: 6px 8px; }
+.preview-item { padding: 6px 10px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+.error-list { background: var(--negative-bg); border-radius: var(--radius-sm); padding: 6px 8px; }
 </style>

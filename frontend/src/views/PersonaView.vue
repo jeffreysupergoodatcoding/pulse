@@ -111,6 +111,6 @@ onMounted(() => { loadSets(); loadTemplates() })
 </script>
 
 <style scoped>
-.progress-bar { height: 4px; background: #1e2433; border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: #7c3aed; transition: width .4s; }
+.progress-bar { height: 4px; background: var(--bg-overlay); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); transition: width .4s; }
 </style>

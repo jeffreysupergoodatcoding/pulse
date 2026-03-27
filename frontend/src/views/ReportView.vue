@@ -159,22 +159,20 @@ onUnmounted(() => clearInterval(pollTimer))
 .side-panel { display: flex; flex-direction: column; }
 .mb-3 { margin-bottom: 12px; }
 .mb-4 { margin-bottom: 16px; }
-.progress-wrap { }
-.progress-bar { height: 6px; background: #1e2433; border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; background: #7c3aed; transition: width .5s; }
+.progress-bar { height: 6px; background: var(--bg-overlay); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); transition: width .5s; }
 
-.report-body :deep(h1) { font-size: 22px; font-weight: 700; margin: 0 0 16px; color: #f1f5f9; }
-.report-body :deep(h2) { font-size: 17px; font-weight: 600; margin: 24px 0 10px; color: #e2e8f0; border-bottom: 1px solid #2d3748; padding-bottom: 6px; }
-.report-body :deep(h3) { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: #cbd5e1; }
-.report-body :deep(p)  { font-size: 13px; line-height: 1.7; color: #94a3b8; margin: 0 0 12px; }
-.report-body :deep(ul), .report-body :deep(ol) { padding-left: 20px; color: #94a3b8; font-size: 13px; margin: 0 0 12px; }
+.report-body :deep(h1) { font-size: 22px; font-weight: 700; margin: 0 0 16px; color: var(--text-primary); }
+.report-body :deep(h2) { font-size: 17px; font-weight: 600; margin: 24px 0 10px; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; }
+.report-body :deep(h3) { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: var(--text-secondary); }
+.report-body :deep(p)  { font-size: 13px; line-height: 1.7; color: var(--text-secondary); margin: 0 0 12px; }
+.report-body :deep(ul), .report-body :deep(ol) { padding-left: 20px; color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
 .report-body :deep(li) { margin-bottom: 4px; line-height: 1.6; }
-.report-body :deep(strong) { color: #e2e8f0; }
-.report-body :deep(hr) { border: none; border-top: 1px solid #2d3748; margin: 20px 0; }
+.report-body :deep(strong) { color: var(--text-primary); }
+.report-body :deep(hr) { border: none; border-top: 1px solid var(--border-subtle); margin: 20px 0; }
 
-.signal-box { }
-.signal-item { font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-top: 4px; }
-.signal-item.pos { background: #14532d33; color: #4ade80; }
-.signal-item.neg { background: #450a0a33; color: #f87171; }
-.narrative-item { font-size: 12px; color: #94a3b8; padding: 4px 0; border-bottom: 1px solid #1e2433; }
+.signal-item { font-size: 12px; padding: 4px 8px; border-radius: var(--radius-sm); margin-top: 4px; }
+.signal-item.pos { background: var(--positive-bg); color: var(--positive-text); }
+.signal-item.neg { background: var(--negative-bg); color: var(--negative-text); }
+.narrative-item { font-size: 12px; color: var(--text-secondary); padding: 4px 0; border-bottom: 1px solid var(--border-subtle); }
 </style>

@@ -4,7 +4,7 @@
 
     <!-- Add entity form -->
     <div class="card" style="max-width:560px;margin-bottom:24px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#f1f5f9">Add Entity</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text-primary)">Add Entity</div>
       <div class="grid-2">
         <div>
           <label>Name</label>
@@ -28,7 +28,7 @@
         <input v-model="form.keywords_raw" placeholder="nike, air max, sneakers" />
       </div>
 
-      <div style="font-size:12px;font-weight:600;color:#64748b;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-faint);margin:14px 0 8px;text-transform:uppercase;letter-spacing:1px">
         Source Config
       </div>
       <div class="grid-2">
@@ -46,7 +46,7 @@
         <button class="btn btn-primary" :disabled="!form.name || saving" @click="addEntity">
           {{ saving ? 'Creating…' : 'Create Entity' }}
         </button>
-        <span v-if="error" style="color:#f87171;font-size:12px;align-self:center">{{ error }}</span>
+        <span v-if="error" style="color:var(--negative);font-size:12px;align-self:center">{{ error }}</span>
       </div>
     </div>
 
@@ -140,6 +140,7 @@ onMounted(loadEntities)
 </script>
 
 <style scoped>
-.entity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.entity-card { display: flex; flex-direction: column; }
+.entity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.entity-card { display: flex; flex-direction: column; transition: box-shadow var(--transition-base); }
+.entity-card:hover { box-shadow: var(--shadow-md); }
 </style>

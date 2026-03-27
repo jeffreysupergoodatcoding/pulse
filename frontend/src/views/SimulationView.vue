@@ -215,7 +215,14 @@ onUnmounted(() => clearInterval(pollTimer))
 </script>
 
 <style scoped>
-.stat { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
-.stat span { font-size: 11px; }
+.stat {
+  display: flex; flex-direction: column; gap: 2px; font-size: 13px;
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.stat span { font-size: 11px; color: var(--text-faint); }
+.stat strong { color: var(--text-primary); }
 textarea { resize: vertical; }
 </style>

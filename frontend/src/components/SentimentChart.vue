@@ -21,7 +21,7 @@ const canvasRef = ref(null)
 const hasData = ref(false)
 let chartInstance = null
 
-const ARCH_COLORS = ['#7c3aed','#2563eb','#0891b2','#16a34a','#d97706','#dc2626','#db2777','#9333ea']
+const ARCH_COLORS = ['#6366F1','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6']
 
 function buildChart() {
   if (!canvasRef.value) return
@@ -35,8 +35,8 @@ function buildChart() {
   const datasets = [{
     label: 'Overall',
     data: overallData,
-    borderColor: '#7c3aed',
-    backgroundColor: 'rgba(124,58,237,0.1)',
+    borderColor: '#6366F1',
+    backgroundColor: 'rgba(99,102,241,0.08)',
     borderWidth: 2,
     tension: 0.3,
     fill: true,
@@ -52,7 +52,7 @@ function buildChart() {
     datasets.push({
       label: 'Forecast',
       data: [...Array(rounds.length - 1).fill(null), overallData[overallData.length - 1], traj.predicted_final_score],
-      borderColor: '#f59e0b',
+      borderColor: '#D97706',
       borderWidth: 1,
       borderDash: [4, 4],
       pointRadius: 3,
@@ -69,15 +69,18 @@ function buildChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
-        tooltip: { backgroundColor: '#1e2433', titleColor: '#e2e8f0', bodyColor: '#94a3b8' },
+        legend: { labels: { color: '#6B7280', font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: '#FFFFFF', titleColor: '#111827', bodyColor: '#6B7280',
+          borderColor: '#E8EAEF', borderWidth: 1,
+        },
       },
       scales: {
-        x: { ticks: { color: '#4b5563', font: { size: 10 } }, grid: { color: '#1e2433' } },
+        x: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: '#F1F3F7' } },
         y: {
           min: -1, max: 1,
-          ticks: { color: '#4b5563', font: { size: 10 } },
-          grid: { color: '#1e2433' },
+          ticks: { color: '#6B7280', font: { size: 10 } },
+          grid: { color: '#F1F3F7' },
         },
       },
     },
@@ -90,6 +93,6 @@ onUnmounted(() => { if (chartInstance) chartInstance.destroy() })
 </script>
 
 <style scoped>
-.chart-wrap { position: relative; height: 260px; }
-.chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #4b5563; font-size: 13px; }
+.chart-wrap { position: relative; height: 260px; background: var(--bg-raised); border-radius: var(--radius-md); }
+.chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 13px; }
 </style>

@@ -73,31 +73,37 @@ onUnmounted(() => clearInterval(timer))
 
 <style scoped>
 .sidebar {
-  width: 200px; flex-shrink: 0;
-  background: #0d1117; border-right: 1px solid #2d3748;
+  width: 100%; height: 100%;
+  background: var(--bg-surface);
   display: flex; flex-direction: column; overflow-y: auto;
 }
 .sidebar-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px; border-bottom: 1px solid #2d3748;
+  padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
-.sidebar-title { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+.sidebar-title {
+  font-size: 10px; font-weight: 600; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
 .entity-list { list-style: none; }
-.entity-item { border-bottom: 1px solid #1e2433; }
-.entity-item.active .entity-link { background: #1a1f2e; }
+.entity-item { border-bottom: 1px solid var(--border-subtle); }
+.entity-item.active .entity-link { background: var(--bg-active); }
 .entity-link {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 12px; text-decoration: none; color: #e2e8f0;
-  font-size: 13px;
+  padding: 9px 12px; text-decoration: none; color: var(--text-primary);
+  font-size: 13px; transition: background var(--transition-fast);
 }
-.entity-link:hover { background: #161b27; }
-.entity-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entity-link:hover { background: var(--bg-hover); }
+.entity-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
 .entity-subnav {
-  display: flex; gap: 0; padding: 0 8px 8px;
+  display: flex; flex-wrap: wrap; gap: 2px; padding: 2px 8px 8px;
 }
 .entity-subnav a {
-  font-size: 11px; color: #64748b; text-decoration: none;
-  padding: 2px 6px; border-radius: 4px;
+  font-size: 11px; color: var(--text-muted); text-decoration: none;
+  padding: 2px 6px; border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
-.entity-subnav a:hover, .entity-subnav a.router-link-active { color: #a78bfa; background: #1e2433; }
+.entity-subnav a:hover { color: var(--accent); background: var(--accent-light); }
+.entity-subnav a.router-link-active { color: var(--accent); background: var(--accent-light); }
 </style>
