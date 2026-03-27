@@ -411,7 +411,8 @@ class PersonaEngine:
             parsed = json.loads(raw)
             # Handle both {"profiles": [...]} and plain array
             if isinstance(parsed, dict):
-                return parsed.get("profiles", list(parsed.values())[0] if parsed else [])
+                fallback = next((v for v in parsed.values() if isinstance(v, list)), [])
+                return parsed.get("profiles", fallback)
             return parsed if isinstance(parsed, list) else []
         except Exception as exc:
             logger.error(f"Profile generation failed for {archetype['id']}: {exc}")

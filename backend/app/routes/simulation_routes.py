@@ -109,10 +109,10 @@ def stream(sim_id: str):
                 with actions_path.open() as fh:
                     lines = fh.readlines()
                 for line in lines[sent:]:
+                    sent += 1
                     line = line.strip()
                     if line:
                         yield f"data: {line}\n\n"
-                        sent = len(lines)
             time.sleep(1)
 
     return Response(_generate(), mimetype="text/event-stream")

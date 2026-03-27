@@ -5,6 +5,7 @@ export const graph = {
   createEntity: (body) => api.post('/graph/entities', body),
   listEntities: () => api.get('/graph/entities'),
   getEntity: (id) => api.get(`/graph/entities/${id}`),
+  updateEntity: (id, body) => api.put(`/graph/entities/${id}`, body),
 
   // Graph operations
   build: (body) => api.post('/graph/build', body),

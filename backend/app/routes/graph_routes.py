@@ -133,3 +133,29 @@ def get_entity(entity_id: str):
     if not entity:
         return jsonify({"error": "not found"}), 404
     return jsonify(entity.model_dump(mode="json"))
+
+
+@graph_bp.put("/entities/<entity_id>")
+def update_entity(entity_id: str):
+    """
+    PUT /api/graph/entities/<entity_id>
+    Accepts partial updates: description, keywords, source_config.
+    """
+    entity = entity_store.get(entity_id)
+    if not entity:
+        return jsonify({"error": "not found"}), 404
+
+    body = request.get_json(force=True) or {}
+    if "description" in body:
+        entity.description = body["description"]
+    if "keywords" in body:
+        entity.keywords = body["keywords"]
+    if "source_config" in body:
+        sc = body["source_config"]
+        entity.source_config.reddit = sc.get("reddit", entity.source_config.reddit)
+        entity.source_config.twitter = sc.get("twitter", entity.source_config.twitter)
+        entity.source_config.youtube = sc.get("youtube", entity.source_config.youtube)
+        entity.source_config.rss = sc.get("rss", entity.source_config.rss)
+
+    entity_store.update(entity)
+    return jsonify(entity.model_dump(mode="json"))

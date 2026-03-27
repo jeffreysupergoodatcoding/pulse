@@ -149,11 +149,24 @@ function buildSourcesPayload() {
   return result
 }
 
+function buildSourceConfig() {
+  const toList = (str) => str.split(',').map(s => s.trim()).filter(Boolean)
+  return {
+    reddit:  { subreddits: enabled.value.reddit  ? toList(sources.value.reddit)  : [] },
+    twitter: { queries:    enabled.value.twitter ? toList(sources.value.twitter) : [] },
+    youtube: { video_ids:  enabled.value.youtube ? toList(sources.value.youtube) : [], channel_ids: [] },
+    rss:     { feed_urls:  enabled.value.rss     ? toList(sources.value.rss)     : [] },
+  }
+}
+
 async function pull() {
   pulling.value = true
   taskId.value = ''
   taskStatus.value = {}
   try {
+    // Persist source config back to entity before pulling
+    await graphApi.updateEntity(entityId, { source_config: buildSourceConfig() })
+
     const r = await ingestionApi.pull({
       entity_id: entityId,
       sources: buildSourcesPayload(),
