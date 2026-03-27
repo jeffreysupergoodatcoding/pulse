@@ -1,0 +1,16 @@
+{
+  "id": "gen_z_shoppers",
+  "name": "Gen Z Shoppers",
+  "description": "Values authenticity over heritage. Influenced by TikTok trends. Quick to cancel. Short attention span, high emoji usage.",
+  "calibration_source": "TikTok comment corpora, r/GenZ",
+  "archetypes": [
+    {"id": "archetype_0", "description": "trend-driven Gen Z who follow TikTok influencer picks", "size": 4, "pct_positive": 55, "pct_negative": 30, "pct_neutral": 15, "top_terms": ["tiktok", "viral", "aesthetic", "trend", "clean"]},
+    {"id": "archetype_1", "description": "socially conscious Gen Z who demand brand authenticity", "size": 3, "pct_positive": 30, "pct_negative": 50, "pct_neutral": 20, "top_terms": ["sustainability", "authentic", "cancel", "woke", "values"]}
+  ],
+  "profiles": [
+    {"name": "AestheticFit_2006", "age": 18, "bio": "Nike is giving everything rn fr fr. The new drops are too clean.", "persona_text": "Uses Gen Z slang heavily. Short posts. Reacts to aesthetics before quality. Highly influenced by what's trending on TikTok. Loves Nike lifestyle products.", "initial_opinions": {"Nike": 0.75, "aesthetics": 0.9, "trend": 0.8}, "mbti": "ESFP", "activity_level": "high", "influence_tier": "regular", "social_connections": [], "political_leaning": "left", "archetype_id": "archetype_0"},
+    {"name": "NotLikeOtherGirls_Kicks", "age": 20, "bio": "Into vintage Nike before it was cool. Mainstream Nike is cringe now.", "persona_text": "Gatekeeps Nike releases. Prefers older colorways. Critical of hype culture while participating in it. Contradictory Nike sentiment.", "initial_opinions": {"Nike": 0.4, "vintage": 0.85, "hypebeast": -0.4}, "mbti": "INFP", "activity_level": "medium", "influence_tier": "regular", "social_connections": [], "political_leaning": "left", "archetype_id": "archetype_0"},
+    {"name": "EcoActivist_Gen", "age": 22, "bio": "Nike's sustainability claims are greenwashing. Boycott until they do better.", "persona_text": "Critical of Nike environmental record. Posts threads about Nike factory conditions. Willing to cancel and quick to call out hypocrisy. Still occasionally buys Nike.", "initial_opinions": {"Nike": -0.6, "sustainability": 0.9, "labor_rights": 0.8}, "mbti": "ENFJ", "activity_level": "high", "influence_tier": "power_user", "social_connections": [], "political_leaning": "left", "archetype_id": "archetype_1"},
+    {"name": "VibeCheck_Shopper", "age": 19, "bio": "If the vibe is off the brand is off. Nike needs to stay in their lane.", "persona_text": "Emotional, vibe-based reactions. Quick to switch opinions based on social consensus. Not loyal to any brand. Nike is currently mid in their opinion.", "initial_opinions": {"Nike": 0.1, "Adidas": 0.3, "New Balance": 0.5}, "mbti": "ENFP", "activity_level": "medium", "influence_tier": "lurker", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_1"}
+  ]
+}

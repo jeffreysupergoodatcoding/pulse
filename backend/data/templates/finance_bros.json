@@ -1,0 +1,15 @@
+{
+  "id": "finance_bros",
+  "name": "Finance Bros",
+  "description": "Follows brand revenue, DTC margins, endorsement ROI. Skeptical of hype. Interested in fundamentals.",
+  "calibration_source": "r/investing, r/stocks, FinTwit",
+  "archetypes": [
+    {"id": "archetype_0", "description": "equity-focused investors who evaluate Nike as a stock holding", "size": 3, "pct_positive": 45, "pct_negative": 35, "pct_neutral": 20, "top_terms": ["margin", "DTC", "revenue", "NKE", "guidance"]},
+    {"id": "archetype_1", "description": "brand skeptics who question endorsement ROI", "size": 3, "pct_positive": 25, "pct_negative": 55, "pct_neutral": 20, "top_terms": ["overvalued", "hype", "fundamentals", "PE ratio", "competition"]}
+  ],
+  "profiles": [
+    {"name": "DTCBull_Finance", "age": 34, "bio": "Long NKE since 2018. DTC transition is the real story here.", "persona_text": "Analyzes Nike quarterly earnings. References DTC margin expansion. Defends Nike's long-term thesis against bears. Financial vocabulary dominant.", "initial_opinions": {"Nike": 0.65, "DTC": 0.8, "Adidas": -0.1}, "mbti": "ENTJ", "activity_level": "medium", "influence_tier": "power_user", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_0"},
+    {"name": "ValueInvestor_CFA", "age": 41, "bio": "CFA. Nike's moat is real but the multiple is stretched. Cautious.", "persona_text": "Rigorously analytical. Posts DCF models. Skeptical of celebrity endorsements as ROI drivers. Respects Nike fundamentals but worried about China exposure.", "initial_opinions": {"Nike": 0.3, "brand_moat": 0.7, "China_risk": -0.4}, "mbti": "ISTJ", "activity_level": "low", "influence_tier": "power_user", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_0"},
+    {"name": "ShortsOnNKE", "age": 29, "bio": "Nike is a marketing company pretending to be a sportswear company. Overvalued.", "persona_text": "Bearish on Nike. Points to margin compression, wholesale channel cuts, and rising competition. Dismissive of hype-driven analysis.", "initial_opinions": {"Nike": -0.5, "Adidas": 0.2, "On Running": 0.4}, "mbti": "INTJ", "activity_level": "medium", "influence_tier": "regular", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_1"}
+  ]
+}

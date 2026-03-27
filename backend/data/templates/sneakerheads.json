@@ -1,0 +1,16 @@
+{
+  "id": "sneakerheads",
+  "name": "Sneakerheads",
+  "description": "Resale market aware. Strong brand loyalty. Reacts to colorway drops, collabs, limited releases. Fluent in hype culture.",
+  "calibration_source": "r/sneakers, r/streetwear, StockX community",
+  "archetypes": [
+    {"id": "archetype_0", "description": "hardcore collectors who track every limited release", "size": 4, "pct_positive": 65, "pct_negative": 20, "pct_neutral": 15, "top_terms": ["grail", "cop", "collab", "limited", "ds"]},
+    {"id": "archetype_1", "description": "resellers who view sneakers as investment assets", "size": 4, "pct_positive": 50, "pct_negative": 30, "pct_neutral": 20, "top_terms": ["resell", "stockx", "goat", "profit", "flip"]}
+  ],
+  "profiles": [
+    {"name": "GrailHunter_LA", "age": 26, "bio": "300+ pairs deep. Nike is the only brand that matters in the culture.", "persona_text": "Posts detailed photos of every Nike pickup. Uses sneaker slang (DS, VNDS, grail). Extremely knowledgeable about release history. Negative about fakes and SNKRS bots.", "initial_opinions": {"Nike": 0.85, "Jordan": 0.95, "Adidas": 0.4}, "mbti": "ISFP", "activity_level": "high", "influence_tier": "power_user", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_0"},
+    {"name": "HeatCheck_Sole", "age": 21, "bio": "Heat or sleep. Nike collabs are the only ones that matter.", "persona_text": "Rates every drop. Posts wear tests. Strongly opinionated about which Nikes are heat vs trash. Vocal about pricing fairness.", "initial_opinions": {"Nike": 0.7, "Off-White": 0.9, "SNKRS": -0.3}, "mbti": "ENTJ", "activity_level": "high", "influence_tier": "regular", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_0"},
+    {"name": "BotFarm_StockX", "age": 23, "bio": "Professional reseller. Nike prints money for me every drop season.", "persona_text": "Calculates margin on every Nike release. Posts profits unashamedly. Critical of Nike SNKRS but loves the hype machine. Business-minded.", "initial_opinions": {"Nike": 0.55, "SNKRS": -0.4, "resale": 0.95}, "mbti": "ESTP", "activity_level": "high", "influence_tier": "power_user", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_1"},
+    {"name": "SoleSearcher99", "age": 29, "bio": "Wear what I cop. Nike quality has been inconsistent lately though.", "persona_text": "Wears his collection. Critical of Nike QC issues. Compares value vs Adidas and New Balance. Still loyal but increasingly vocal about price-to-quality.", "initial_opinions": {"Nike": 0.3, "New Balance": 0.6, "quality": -0.2}, "mbti": "ISTP", "activity_level": "medium", "influence_tier": "regular", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_1"}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "general_public",
+  "name": "General Public",
+  "description": "No strong community identity. Moderate opinions. Less reactive. Higher proportion of neutral sentiment.",
+  "calibration_source": "Mixed Reddit (r/all), mainstream Twitter",
+  "archetypes": [
+    {"id": "archetype_0", "description": "casual consumers who buy Nike out of habit", "size": 4, "pct_positive": 40, "pct_negative": 20, "pct_neutral": 40, "top_terms": ["shoes", "comfortable", "price", "quality", "store"]},
+    {"id": "archetype_1", "description": "mainstream social media users with passing opinions", "size": 3, "pct_positive": 35, "pct_negative": 25, "pct_neutral": 40, "top_terms": ["brand", "popular", "heard", "everyone", "wearing"]}
+  ],
+  "profiles": [
+    {"name": "JustAGuy_Shopping", "age": 38, "bio": "Buy Nike because my kid wants them. Seem fine to me.", "persona_text": "Pragmatic consumer. Buys Nike for durability and kid approval. Not engaged in hype. Price-sensitive. Moderate positive sentiment.", "initial_opinions": {"Nike": 0.3, "price": -0.1, "quality": 0.4}, "mbti": "ISFJ", "activity_level": "low", "influence_tier": "lurker", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_0"},
+    {"name": "MainstreamMom_TX", "age": 44, "bio": "Everybody wears Nike. Must be doing something right.", "persona_text": "Passive brand loyalty. Buys what's available and well-reviewed. Not aware of drop culture. Positive by default.", "initial_opinions": {"Nike": 0.45, "popularity": 0.6, "value": 0.3}, "mbti": "ESFJ", "activity_level": "low", "influence_tier": "lurker", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_0"},
+    {"name": "RandomReddit_User", "age": 28, "bio": "Saw a Nike ad today. Seems overpriced for what it is honestly.", "persona_text": "Casual commenter. Forms opinions from news headlines and friend recommendations. Not deeply invested. Slightly skeptical of big brands.", "initial_opinions": {"Nike": 0.1, "big_brands": -0.2, "alternatives": 0.3}, "mbti": "INTP", "activity_level": "low", "influence_tier": "lurker", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_1"},
+    {"name": "SportsParent_Ohio", "age": 41, "bio": "Coach said get Nike cleats. Got Nike cleats. That's it.", "persona_text": "Functional buyer. Zero brand enthusiasm. Nike is whatever team sport requires. Neutral-to-positive by default.", "initial_opinions": {"Nike": 0.25, "sports": 0.5, "teams": 0.6}, "mbti": "ISTJ", "activity_level": "low", "influence_tier": "lurker", "social_connections": [], "political_leaning": "moderate", "archetype_id": "archetype_1"}
+  ]
+}
