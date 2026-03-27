@@ -20,6 +20,7 @@ build/
 # Runtime data (generated at run time)
 backend/data/entities/
 backend/data/simulations/
+backend/log/
 
 # Node
 node_modules/
