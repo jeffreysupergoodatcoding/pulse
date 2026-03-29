@@ -1,4 +1,4 @@
-# PULSE — Social Sentiment Simulation Platform
+# PULSE: Social Sentiment Simulation Platform
 
 PULSE is a social intelligence platform that simulates how real communities react to news, product launches, controversies, and hypothetical events. Given any brand, person, or topic, it spins up hundreds of AI agents — each with a distinct persona grounded in real social data — and runs them through a multi-round social media simulation across Twitter and Reddit. You get live sentiment scores, emergent opinion dynamics, and a prediction of how public sentiment will shift.
 
