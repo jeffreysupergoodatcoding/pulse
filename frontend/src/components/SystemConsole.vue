@@ -1,14 +1,23 @@
 <template>
-  <div class="sys-console">
-    <div class="sys-header">
+  <div class="sys-console" :style="consoleStyle" :class="{ collapsed: !visible }">
+    <!-- Drag handle -->
+    <div v-if="visible" class="sys-drag" @mousedown="startDrag" />
+
+    <!-- Header — always visible, acts as toggle when collapsed -->
+    <div class="sys-header" @click="toggle">
       <span class="sys-title">SYSTEM DASHBOARD</span>
       <span class="sys-sim-id" v-if="simId">{{ simId }}</span>
       <span class="sys-status" v-if="status.status">
         <span class="sys-dot" :class="status.status" />
         {{ (status.status || '').toUpperCase() }}
       </span>
+      <button class="sys-toggle-btn" :title="visible ? 'Hide console' : 'Show console'">
+        {{ visible ? '▾' : '▴' }}
+      </button>
     </div>
-    <div class="sys-body" ref="bodyRef">
+
+    <!-- Body — only rendered when visible -->
+    <div v-if="visible" class="sys-body" ref="bodyRef">
       <div
         v-for="(log, i) in displayLogs"
         :key="i"
@@ -26,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, nextTick } from 'vue'
+import { ref, watch, computed, nextTick, onUnmounted } from 'vue'
 
 const props = defineProps({
   simId:   { type: String, default: '' },
@@ -38,6 +47,48 @@ const bodyRef = ref(null)
 const logs = ref([])
 const seenActionIds = new Set()
 
+const visible = ref(true)
+const height = ref(120)
+const MIN_HEIGHT = 60
+const MAX_HEIGHT = 500
+
+const consoleStyle = computed(() =>
+  visible.value ? { height: height.value + 'px' } : {}
+)
+
+// --- Drag to resize ---
+let startY = 0
+let startH = 0
+
+function startDrag(e) {
+  e.preventDefault()
+  startY = e.clientY
+  startH = height.value
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.body.style.cursor = 'ns-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function onDrag(e) {
+  const delta = startY - e.clientY
+  height.value = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH + delta))
+}
+
+function stopDrag() {
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(stopDrag)
+
+function toggle() {
+  visible.value = !visible.value
+}
+
+// --- Logging ---
 function formatTime(d) {
   return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0')
 }
@@ -124,7 +175,6 @@ const displayLogs = computed(() => logs.value)
 
 <style scoped>
 .sys-console {
-  height: 120px;
   flex-shrink: 0;
   background: #0D1117;
   border-top: 1px solid #21262D;
@@ -132,6 +182,26 @@ const displayLogs = computed(() => logs.value)
   font-size: 11px;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.sys-console.collapsed {
+  height: auto !important;
+}
+
+/* Drag handle */
+.sys-drag {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 10;
+}
+.sys-drag:hover,
+.sys-drag:active {
+  background: rgba(88, 166, 255, 0.25);
 }
 
 .sys-header {
@@ -141,6 +211,11 @@ const displayLogs = computed(() => logs.value)
   padding: 5px 14px;
   border-bottom: 1px solid #21262D;
   flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+.sys-header:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 .sys-title {
   font-size: 10px;
@@ -159,7 +234,6 @@ const displayLogs = computed(() => logs.value)
   gap: 5px;
   font-size: 10px;
   color: #8B949E;
-  margin-left: auto;
   letter-spacing: 0.5px;
 }
 .sys-dot {
@@ -172,11 +246,34 @@ const displayLogs = computed(() => logs.value)
 .sys-dot.completed { background: #58A6FF; }
 .sys-dot.error { background: #F85149; }
 
+.sys-toggle-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #30363D;
+  border-radius: 4px;
+  color: #8B949E;
+  font-size: 10px;
+  width: 22px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.sys-toggle-btn:hover {
+  color: #C9D1D9;
+  border-color: #484F58;
+  background: #21262D;
+}
+
 .sys-body {
   flex: 1;
   overflow-y: auto;
   padding: 4px 14px 6px;
   scroll-behavior: smooth;
+  min-height: 0;
 }
 .sys-body::-webkit-scrollbar { width: 4px; }
 .sys-body::-webkit-scrollbar-track { background: transparent; }

@@ -156,4 +156,42 @@ class SimulationManager:
         return True
 
 
+    def list_simulations(self, entity_id: str) -> list[dict]:
+        """List all simulations for an entity, most recent first."""
+        sims_dir = Path(self.config.SIMULATIONS_DIR)
+        if not sims_dir.exists():
+            return []
+        results = []
+        for sim_dir in sims_dir.iterdir():
+            if not sim_dir.is_dir():
+                continue
+            state_path = sim_dir / "state.json"
+            if not state_path.exists():
+                continue
+            try:
+                initial = json.loads(state_path.read_text())
+            except Exception:
+                continue
+            if initial.get("entity_id") != entity_id:
+                continue
+            merged = dict(initial)
+            run_path = sim_dir / "run_state.json"
+            if run_path.exists():
+                try:
+                    merged.update(json.loads(run_path.read_text()))
+                except Exception:
+                    pass
+            results.append({
+                "simulation_id": merged.get("simulation_id", sim_dir.name),
+                "status": merged.get("status", "idle"),
+                "current_round": merged.get("current_round", 0),
+                "total_rounds": merged.get("total_rounds", 0),
+                "actions_count": merged.get("actions_count", 0),
+                "started_at": merged.get("started_at"),
+                "completed_at": merged.get("completed_at"),
+            })
+        results.sort(key=lambda x: x.get("started_at") or "", reverse=True)
+        return results
+
+
 simulation_manager = SimulationManager(Config)

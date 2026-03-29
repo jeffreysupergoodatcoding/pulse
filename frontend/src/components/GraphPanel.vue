@@ -110,9 +110,11 @@ const NODE_COLOR = {
 function getZ(type) { return PLANE_Z[type] ?? 300 }
 function getColor(type) { return NODE_COLOR[type] || '#10B981' }
 function getSize(type) {
-  if (type === 'Brand') return 8
-  if (type === 'Person' || type === 'Influencer') return 5
-  return 3
+  if (type === 'Brand') return 18
+  if (type === 'Person' || type === 'Influencer') return 12
+  if (type === 'Product') return 10
+  if (type === 'Community' || type === 'Event') return 8
+  return 6
 }
 
 function connectionCount(node) {
@@ -131,11 +133,12 @@ function initGraph() {
     .backgroundColor('rgba(0,0,0,0)')
     .showNavInfo(false)
     // Links
-    .linkColor(() => 'rgba(150,158,180,0.25)')
-    .linkWidth(0.5)
-    .linkDirectionalParticles(1)
-    .linkDirectionalParticleWidth(1.2)
-    .linkDirectionalParticleColor(() => 'rgba(99,102,241,0.45)')
+    .linkColor(() => 'rgba(150,158,180,0.4)')
+    .linkWidth(0.8)
+    .linkDirectionalParticles(2)
+    .linkDirectionalParticleWidth(1.5)
+    .linkDirectionalParticleColor(() => 'rgba(99,102,241,0.6)')
+    .linkDirectionalParticleSpeed(0.005)
     // Nodes
     .nodeColor(d => getColor(d.type))
     .nodeVal(d => getSize(d.type))
@@ -166,9 +169,9 @@ function initGraph() {
   // Free 3D layout — no z-plane constraint so the graph orbits in true 3D space
   graphInstance.d3Force('z-plane', null)
 
-  // Denser clustering: moderate repulsion, short links
-  graphInstance.d3Force('charge')?.strength(-120)
-  graphInstance.d3Force('link')?.distance(30).strength(0.8)
+  // Strong repulsion + long links so nodes spread into a visible cloud
+  graphInstance.d3Force('charge')?.strength(-350)
+  graphInstance.d3Force('link')?.distance(80).strength(0.4)
 
   renderGraph()
 }
@@ -178,6 +181,9 @@ function renderGraph() {
   hasData.value = nodes.value.length > 0
   if (!hasData.value) return
 
+  // Build a set of valid node IDs so we only include edges that reference existing nodes
+  const nodeIds = new Set(nodes.value.map(n => n.id))
+
   graphInstance.graphData({
     nodes: nodes.value.map(n => ({
       ...n,
@@ -185,12 +191,21 @@ function renderGraph() {
       label: n.label || n.id,
       type: n.type || 'Unknown',
     })),
-    links: edges.value.map(e => ({
-      source: e.source,
-      target: e.target,
-      label: e.relation || e.label || '',
-    })),
+    links: edges.value
+      .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target))
+      .map(e => ({
+        source: e.source,
+        target: e.target,
+        label: e.relation || e.label || '',
+      })),
   })
+
+  // Zoom to fit after the force layout stabilises (delayed to let simulation run)
+  setTimeout(() => {
+    if (graphInstance && hasData.value) {
+      graphInstance.zoomToFit(600, 60)
+    }
+  }, 1500)
 }
 
 async function loadData() {
@@ -205,11 +220,14 @@ async function loadData() {
 }
 
 function resetCamera() {
-  graphInstance?.zoomToFit(600, 40)
+  if (!graphInstance) return
+  graphInstance.cameraPosition({ x: 0, y: 0, z: 600 }, { x: 0, y: 0, z: 0 }, 600)
+  setTimeout(() => graphInstance?.zoomToFit(600, 60), 700)
 }
 
 function fitGraph() {
-  graphInstance?.zoomToFit(400)
+  if (!graphInstance) return
+  graphInstance.zoomToFit(400, 60)
 }
 
 function toggleRotate() {
@@ -284,17 +302,17 @@ onUnmounted(() => {
 .graph-container {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
 }
 
-/* Dot-grid overlay — positioned ABOVE the 3D canvas */
+/* Dot-grid overlay — BELOW the 3D canvas so it never intercepts mouse events */
 .graph-dot-grid {
   position: absolute;
   inset: 0;
   background-image: radial-gradient(circle, rgba(0,0,0,0.09) 1px, transparent 1px);
   background-size: 22px 22px;
   pointer-events: none;
-  z-index: 1;
+  z-index: -1;
 }
 
 /* Empty state */
@@ -326,7 +344,8 @@ onUnmounted(() => {
   border-radius: var(--radius-full);
   padding: 4px 12px;
   box-shadow: var(--shadow-sm);
-  z-index: 5;
+  z-index: 10;
+  pointer-events: none;
   font-family: var(--font-sans);
   font-weight: 500;
   letter-spacing: -0.1px;
@@ -336,7 +355,7 @@ onUnmounted(() => {
 .graph-toolbar {
   position: absolute; top: 12px; right: 14px;
   display: flex; gap: 4px;
-  z-index: 5;
+  z-index: 10;
 }
 .ctrl-btn {
   width: 32px; height: 32px;
@@ -369,7 +388,7 @@ onUnmounted(() => {
   transform: translateX(300px);
   opacity: 0;
   transition: transform var(--transition-base), opacity var(--transition-base);
-  z-index: 10;
+  z-index: 20;
   font-family: var(--font-sans);
 }
 .graph-info-panel.visible {
@@ -425,7 +444,8 @@ onUnmounted(() => {
 .graph-legend {
   position: absolute; bottom: 14px; left: 14px;
   display: flex; gap: 6px; flex-wrap: wrap;
-  z-index: 5;
+  z-index: 10;
+  pointer-events: none;
 }
 .leg-chip {
   display: inline-flex;

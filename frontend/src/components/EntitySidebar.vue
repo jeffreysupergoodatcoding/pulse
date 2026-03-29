@@ -2,8 +2,8 @@
   <div class="entity-section">
     <!-- Section header -->
     <div class="es-header">
-      <span class="es-label">Entities</span>
-      <router-link to="/" class="es-new-btn" title="Add new entity" aria-label="Add new entity">+</router-link>
+      <span class="es-label">Projects</span>
+      <button class="es-new-btn" title="Add new entity" aria-label="Add new entity" @click="goNewEntity">+</button>
     </div>
 
     <!-- Loading -->
@@ -58,10 +58,16 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { graph } from '../api/graph.js'
 
 const route = useRoute()
+const router = useRouter()
+
+function goNewEntity() {
+  // Navigate to home with a unique timestamp query to force remount
+  router.push({ path: '/', query: { new: Date.now() } })
+}
 const entities = ref([])
 const loading = ref(true)
 const expanded = ref(null)
@@ -144,6 +150,7 @@ onUnmounted(() => clearInterval(timer))
   width: 20px;
   height: 20px;
   border-radius: var(--radius-sm);
+  border: none;
   background: var(--bg-overlay);
   color: var(--text-muted);
   display: flex;
@@ -151,7 +158,7 @@ onUnmounted(() => clearInterval(timer))
   justify-content: center;
   font-size: 14px;
   font-weight: 500;
-  text-decoration: none;
+  cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
   line-height: 1;
 }

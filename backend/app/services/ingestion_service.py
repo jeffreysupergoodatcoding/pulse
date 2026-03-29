@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Callable
 
 import feedparser
+import requests as _requests
 
 from app.config import Config
 from app.models import PostRecord
@@ -94,7 +95,100 @@ class IngestionService:
         self._schedule_stop: dict[str, threading.Event] = {}
 
     # ------------------------------------------------------------------
-    # Reddit
+    # Reddit (RSS — no API key needed, 25 posts per feed)
+    # ------------------------------------------------------------------
+
+    def pull_reddit_rss(
+        self,
+        entity_id: str,
+        subreddits: list[str],
+        query: str | None = None,
+        limit: int = 100,
+    ) -> list[PostRecord]:
+        """
+        Pull Reddit posts via RSS feeds. No API key required.
+        If query is provided, uses search RSS for entity-relevant posts.
+        Supports multi-subreddit syntax (r/a+b+c).
+        """
+        import re
+        import urllib.parse
+
+        records: list[PostRecord] = []
+
+        # Build feed URLs — batch subreddits in groups for multi-sub feeds
+        feed_urls: list[str] = []
+        if query:
+            # Search across all subreddits combined
+            multi = "+".join(s.strip() for s in subreddits if s.strip())
+            if multi:
+                q = urllib.parse.quote_plus(query)
+                feed_urls.append(
+                    f"https://www.reddit.com/r/{multi}/search.rss?q={q}&sort=new&restrict_sr=1"
+                )
+            else:
+                q = urllib.parse.quote_plus(query)
+                feed_urls.append(
+                    f"https://www.reddit.com/search.rss?q={q}&sort=new"
+                )
+        else:
+            # New posts from each subreddit (or combined)
+            for sub in subreddits:
+                sub = sub.strip()
+                if sub:
+                    feed_urls.append(f"https://www.reddit.com/r/{sub}/new/.rss")
+
+        for url in feed_urls:
+            try:
+                resp = _requests.get(url, headers={"User-Agent": "pulse/1.0 (sentiment simulation)"}, timeout=15)
+                feed = feedparser.parse(resp.content)
+                if feed.bozo and not feed.entries:
+                    logger.warning(f"Reddit RSS feed error for {url}: {feed.bozo_exception}")
+                    continue
+
+                for entry in feed.entries[:limit]:
+                    # Clean HTML from summary
+                    summary = entry.get("summary", "")
+                    clean_text = re.sub(r"<[^>]+>", " ", summary).strip()
+                    clean_text = re.sub(r"\s+", " ", clean_text)
+
+                    title = entry.get("title", "")
+                    content = f"{title}\n\n{clean_text}".strip() if clean_text else title
+
+                    entry_id = entry.get("id", "")
+                    # Reddit RSS ids look like "t3_xxxxx" — extract the post id
+                    post_id = entry_id.split("/")[-1] if "/" in entry_id else entry_id
+
+                    author = entry.get("author", entry.get("author_detail", {}).get("name", "unknown"))
+
+                    published = entry.get("published_parsed")
+                    if published:
+                        created_at = datetime(*published[:6], tzinfo=timezone.utc)
+                    else:
+                        created_at = datetime.now(timezone.utc)
+
+                    record = PostRecord(
+                        id=f"reddit_rss:{post_id}",
+                        platform="reddit",
+                        entity_id=entity_id,
+                        author_id=_anonymize(str(author)),
+                        author_metadata={},
+                        content=content,
+                        parent_id=None,
+                        created_at=created_at,
+                        engagement={"likes": 0, "shares": 0, "replies": 0, "views": 0},
+                        url=entry.get("link", url),
+                        raw={"feed_url": url, "entry_id": entry_id},
+                    )
+                    records.append(record)
+
+                logger.info(f"Reddit RSS {url}: pulled {len(feed.entries)} posts")
+            except Exception as exc:
+                logger.error(f"Reddit RSS {url} failed: {exc}")
+
+        return records
+
+    # ------------------------------------------------------------------
+    # Reddit (PRAW — requires API key)
     # ------------------------------------------------------------------
 
     def pull_reddit(
@@ -318,6 +412,112 @@ class IngestionService:
         return records
 
     # ------------------------------------------------------------------
+    # Hacker News (Algolia API — no key required)
+    # ------------------------------------------------------------------
+
+    def pull_hackernews(
+        self,
+        entity_id: str,
+        queries: list[str],
+        limit: int = 200,
+    ) -> list[PostRecord]:
+        """Pull stories and comments from Hacker News via Algolia Search API."""
+        import urllib.parse
+
+        records: list[PostRecord] = []
+        per_query = max(1, limit // max(len(queries), 1))
+
+        for query in queries:
+            try:
+                # Pull stories
+                story_url = (
+                    "https://hn.algolia.com/api/v1/search_by_date?"
+                    + urllib.parse.urlencode({
+                        "query": query,
+                        "tags": "story",
+                        "hitsPerPage": min(per_query // 2, 200),
+                    })
+                )
+                story_resp = _requests.get(story_url, timeout=15).json()
+
+                for hit in story_resp.get("hits", []):
+                    content = hit.get("title", "")
+                    story_text = hit.get("story_text") or ""
+                    if story_text:
+                        content = f"{content}\n\n{story_text}"
+
+                    record = PostRecord(
+                        id=f"hn:{hit['objectID']}",
+                        platform="hackernews",
+                        entity_id=entity_id,
+                        author_id=_anonymize(hit.get("author", "unknown")),
+                        author_metadata={"username": hit.get("author", "")},
+                        content=content.strip(),
+                        parent_id=None,
+                        created_at=datetime.fromisoformat(
+                            hit["created_at"].replace("Z", "+00:00")
+                        ) if hit.get("created_at") else datetime.now(timezone.utc),
+                        engagement={
+                            "likes": hit.get("points") or 0,
+                            "shares": 0,
+                            "replies": hit.get("num_comments") or 0,
+                            "views": 0,
+                        },
+                        url=hit.get("url") or f"https://news.ycombinator.com/item?id={hit['objectID']}",
+                        raw={"objectID": hit["objectID"], "source": "story"},
+                    )
+                    records.append(record)
+
+                # Pull comments
+                comment_url = (
+                    "https://hn.algolia.com/api/v1/search_by_date?"
+                    + urllib.parse.urlencode({
+                        "query": query,
+                        "tags": "comment",
+                        "hitsPerPage": min(per_query // 2, 200),
+                    })
+                )
+                comment_resp = _requests.get(comment_url, timeout=15).json()
+
+                for hit in comment_resp.get("hits", []):
+                    comment_text = hit.get("comment_text") or ""
+                    if not comment_text:
+                        continue
+
+                    record = PostRecord(
+                        id=f"hn:{hit['objectID']}",
+                        platform="hackernews",
+                        entity_id=entity_id,
+                        author_id=_anonymize(hit.get("author", "unknown")),
+                        author_metadata={"username": hit.get("author", "")},
+                        content=comment_text.strip(),
+                        parent_id=f"hn:{hit.get('story_id', '')}",
+                        created_at=datetime.fromisoformat(
+                            hit["created_at"].replace("Z", "+00:00")
+                        ) if hit.get("created_at") else datetime.now(timezone.utc),
+                        engagement={
+                            "likes": hit.get("points") or 0,
+                            "shares": 0,
+                            "replies": 0,
+                            "views": 0,
+                        },
+                        url=f"https://news.ycombinator.com/item?id={hit['objectID']}",
+                        raw={
+                            "objectID": hit["objectID"],
+                            "story_id": hit.get("story_id"),
+                            "story_title": hit.get("story_title", ""),
+                            "source": "comment",
+                        },
+                    )
+                    records.append(record)
+
+                logger.info(f"HackerNews query '{query}': pulled {len(records)} items")
+            except Exception as exc:
+                logger.error(f"HackerNews query '{query}' failed: {exc}")
+
+        return records
+
+    # ------------------------------------------------------------------
     # RSS
     # ------------------------------------------------------------------
 
@@ -364,6 +564,252 @@ class IngestionService:
         return records
 
     # ------------------------------------------------------------------
+    # Amazon Reviews (via amazon-buddy npm package)
+    # ------------------------------------------------------------------
+
+    def pull_amazon_reviews(
+        self,
+        entity_id: str,
+        asins: list[str],
+        limit: int = 200,
+    ) -> list[PostRecord]:
+        """Pull product reviews from Amazon via amazon-buddy (Node subprocess)."""
+        import subprocess as _sp
+
+        records: list[PostRecord] = []
+        per_asin = max(1, limit // max(len(asins), 1))
+
+        for asin in asins:
+            try:
+                # Call amazon-buddy via Node one-liner
+                script = (
+                    f"const ab = require('amazon-buddy');"
+                    f"ab.reviews({{asin:'{asin}',number:{per_asin},country:'US'}})"
+                    f".then(r => console.log(JSON.stringify(r)))"
+                    f".catch(e => {{ console.error(e); process.exit(1); }})"
+                )
+                result = _sp.run(
+                    ["node", "-e", script],
+                    capture_output=True, text=True, timeout=120,
+                )
+                if result.returncode != 0:
+                    logger.error(f"Amazon {asin}: node error: {result.stderr[:300]}")
+                    continue
+
+                data = json.loads(result.stdout)
+                reviews = data if isinstance(data, list) else data.get("result", data.get("reviews", []))
+
+                for rev in reviews:
+                    rating = rev.get("rating", 3)
+                    if isinstance(rating, str):
+                        try: rating = float(rating.split(" ")[0])
+                        except: rating = 3.0
+                    # Map 1-5 stars → -1.0 to +1.0
+                    sentiment = ((float(rating) - 1) / 4) * 2 - 1
+
+                    title = rev.get("title", "")
+                    body = rev.get("review", "") or rev.get("text", "")
+                    content = f"{title}\n\n{body}".strip() if title else body.strip()
+                    if not content:
+                        continue
+
+                    rev_id = rev.get("id") or hashlib.sha256(content[:100].encode()).hexdigest()[:16]
+                    record = PostRecord(
+                        id=f"amazon:{rev_id}",
+                        platform="amazon",
+                        entity_id=entity_id,
+                        author_id=_anonymize(rev.get("name", "anonymous")),
+                        author_metadata={
+                            "verified": rev.get("verified_purchase", False),
+                        },
+                        content=content,
+                        parent_id=f"amazon:asin:{asin}",
+                        created_at=datetime.now(timezone.utc),
+                        engagement={
+                            "likes": rev.get("helpful_votes", 0) or 0,
+                            "shares": 0,
+                            "replies": 0,
+                            "views": 0,
+                        },
+                        url=f"https://amazon.com/dp/{asin}",
+                        raw={
+                            "asin": asin,
+                            "rating": rating,
+                            "sentiment_from_rating": round(sentiment, 3),
+                            "verified": rev.get("verified_purchase", False),
+                        },
+                    )
+                    records.append(record)
+
+                logger.info(f"Amazon ASIN {asin}: pulled {len(reviews)} reviews")
+            except Exception as exc:
+                logger.error(f"Amazon ASIN {asin} failed: {exc}")
+
+        return records
+
+    # ------------------------------------------------------------------
+    # App Store Reviews (via app-store-scraper pip package)
+    # ------------------------------------------------------------------
+
+    def pull_appstore_reviews(
+        self,
+        entity_id: str,
+        app_ids: list[str],
+        limit: int = 200,
+    ) -> list[PostRecord]:
+        """Pull iOS App Store reviews via app-store-scraper."""
+        try:
+            from app_store_scraper import AppStore
+        except ImportError:
+            logger.error("app-store-scraper not installed — run: pip install app-store-scraper")
+            return []
+
+        records: list[PostRecord] = []
+        per_app = max(1, limit // max(len(app_ids), 1))
+
+        for app_id_str in app_ids:
+            try:
+                # app_id_str format: "app_name/id123456" or just "id123456"
+                parts = app_id_str.strip().split("/")
+                if len(parts) == 2:
+                    app_name, raw_id = parts[0].strip(), parts[1].strip()
+                else:
+                    app_name, raw_id = "", parts[0].strip()
+
+                numeric_id = raw_id.replace("id", "")
+                app = AppStore(country="us", app_name=app_name or "app", app_id=numeric_id)
+                app.review(how_many=per_app)
+
+                for rev in (app.reviews or []):
+                    rating = rev.get("rating", 3)
+                    sentiment = ((float(rating) - 1) / 4) * 2 - 1
+
+                    title = rev.get("title", "")
+                    body = rev.get("review", "")
+                    content = f"{title}\n\n{body}".strip() if title else (body or "").strip()
+                    if not content:
+                        continue
+
+                    created = rev.get("date", datetime.now(timezone.utc))
+                    if isinstance(created, str):
+                        try: created = datetime.fromisoformat(created)
+                        except: created = datetime.now(timezone.utc)
+
+                    rev_id = hashlib.sha256(f"{numeric_id}:{rev.get('userName', '')}:{content[:50]}".encode()).hexdigest()[:16]
+                    record = PostRecord(
+                        id=f"appstore:{rev_id}",
+                        platform="appstore",
+                        entity_id=entity_id,
+                        author_id=_anonymize(rev.get("userName", "anonymous")),
+                        author_metadata={},
+                        content=content,
+                        parent_id=f"appstore:app:{numeric_id}",
+                        created_at=created if hasattr(created, 'isoformat') else datetime.now(timezone.utc),
+                        engagement={
+                            "likes": 0,
+                            "shares": 0,
+                            "replies": 1 if rev.get("developerResponse") else 0,
+                            "views": 0,
+                        },
+                        url=f"https://apps.apple.com/us/app/id{numeric_id}",
+                        raw={
+                            "app_id": numeric_id,
+                            "rating": rating,
+                            "sentiment_from_rating": round(sentiment, 3),
+                        },
+                    )
+                    records.append(record)
+
+                logger.info(f"App Store {app_id_str}: pulled {len(app.reviews or [])} reviews")
+            except Exception as exc:
+                logger.error(f"App Store {app_id_str} failed: {exc}")
+
+        return records
+
+    # ------------------------------------------------------------------
+    # Google Play Reviews (via google-play-scraper npm package)
+    # ------------------------------------------------------------------
+
+    def pull_gplay_reviews(
+        self,
+        entity_id: str,
+        app_ids: list[str],
+        limit: int = 200,
+    ) -> list[PostRecord]:
+        """Pull Google Play reviews via google-play-scraper (Node subprocess)."""
+        import subprocess as _sp
+
+        records: list[PostRecord] = []
+        per_app = max(1, limit // max(len(app_ids), 1))
+
+        for app_id in app_ids:
+            try:
+                script = (
+                    f"const gplay = require('google-play-scraper');"
+                    f"gplay.reviews({{appId:'{app_id}',lang:'en',country:'us',"
+                    f"sort:gplay.sort.NEWEST,num:{per_app}}})"
+                    f".then(r => console.log(JSON.stringify(r.data)))"
+                    f".catch(e => {{ console.error(e); process.exit(1); }})"
+                )
+                result = _sp.run(
+                    ["node", "-e", script],
+                    capture_output=True, text=True, timeout=120,
+                )
+                if result.returncode != 0:
+                    logger.error(f"Google Play {app_id}: node error: {result.stderr[:300]}")
+                    continue
+
+                reviews = json.loads(result.stdout)
+                if not isinstance(reviews, list):
+                    reviews = []
+
+                for rev in reviews:
+                    rating = rev.get("score", 3)
+                    sentiment = ((float(rating) - 1) / 4) * 2 - 1
+
+                    content = (rev.get("text") or "").strip()
+                    if not content:
+                        continue
+
+                    rev_id = rev.get("id") or hashlib.sha256(f"{app_id}:{content[:50]}".encode()).hexdigest()[:16]
+                    created = rev.get("date")
+                    if isinstance(created, str):
+                        try: created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                        except: created = datetime.now(timezone.utc)
+                    else:
+                        created = datetime.now(timezone.utc)
+
+                    record = PostRecord(
+                        id=f"gplay:{rev_id}",
+                        platform="gplay",
+                        entity_id=entity_id,
+                        author_id=_anonymize(rev.get("userName", "anonymous")),
+                        author_metadata={},
+                        content=content,
+                        parent_id=f"gplay:app:{app_id}",
+                        created_at=created,
+                        engagement={
+                            "likes": rev.get("thumbsUp", 0) or 0,
+                            "shares": 0,
+                            "replies": 1 if rev.get("replyText") else 0,
+                            "views": 0,
+                        },
+                        url=f"https://play.google.com/store/apps/details?id={app_id}",
+                        raw={
+                            "app_id": app_id,
+                            "rating": rating,
+                            "sentiment_from_rating": round(sentiment, 3),
+                        },
+                    )
+                    records.append(record)
+
+                logger.info(f"Google Play {app_id}: pulled {len(reviews)} reviews")
+            except Exception as exc:
+                logger.error(f"Google Play {app_id} failed: {exc}")
+
+        return records
+
+    # ------------------------------------------------------------------
     # Queue (v1: JSONL file)
     # ------------------------------------------------------------------
 
@@ -399,20 +845,24 @@ class IngestionService:
         return new_count
 
     def read_queue(self, entity_id: str, limit: int = 20) -> list[dict]:
-        """Read recent records from the entity's queue files (for preview)."""
+        """Read the most recent records from the entity's queue files (for preview)."""
         entity_dir = Path(self.config.ENTITIES_DIR) / entity_id / "ingestion"
         if not entity_dir.exists():
             return []
 
         records: list[dict] = []
         for jsonl_file in sorted(entity_dir.glob("posts_*.jsonl"), reverse=True):
+            file_records: list[dict] = []
             with jsonl_file.open(encoding="utf-8") as fh:
                 for line in fh:
                     line = line.strip()
                     if line:
-                        records.append(json.loads(line))
-                    if len(records) >= limit:
-                        break
+                        try:
+                            file_records.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            pass
+            # Newest records are at the end of the file (appended)
+            records.extend(reversed(file_records))
             if len(records) >= limit:
                 break
 
@@ -453,7 +903,12 @@ class IngestionService:
             try:
                 if platform == "reddit":
                     _progress(f"Pulling Reddit: {ids}", pct)
-                    records = self.pull_reddit(entity_id, ids, limit)
+                    # Use PRAW if keys configured, otherwise fall back to RSS
+                    if self.config.REDDIT_CLIENT_ID and self.config.REDDIT_CLIENT_ID != "...":
+                        records = self.pull_reddit(entity_id, ids, limit)
+                    else:
+                        logger.info("No Reddit API keys — using RSS fallback")
+                        records = self.pull_reddit_rss(entity_id, ids, limit=limit)
                     all_records.extend(records)
 
                 elif platform == "twitter":
@@ -465,6 +920,26 @@ class IngestionService:
                 elif platform == "youtube":
                     _progress(f"Pulling YouTube: {ids}", pct)
                     records = self.pull_youtube(entity_id, ids, limit)
+                    all_records.extend(records)
+
+                elif platform == "hackernews":
+                    _progress(f"Pulling Hacker News: {ids}", pct)
+                    records = self.pull_hackernews(entity_id, ids, limit)
+                    all_records.extend(records)
+
+                elif platform == "amazon":
+                    _progress(f"Pulling Amazon Reviews: {ids}", pct)
+                    records = self.pull_amazon_reviews(entity_id, ids, limit)
+                    all_records.extend(records)
+
+                elif platform == "appstore":
+                    _progress(f"Pulling App Store Reviews: {ids}", pct)
+                    records = self.pull_appstore_reviews(entity_id, ids, limit)
+                    all_records.extend(records)
+
+                elif platform == "gplay":
+                    _progress(f"Pulling Google Play Reviews: {ids}", pct)
+                    records = self.pull_gplay_reviews(entity_id, ids, limit)
                     all_records.extend(records)
 
                 elif platform == "rss":
@@ -489,6 +964,168 @@ class IngestionService:
             "records_duplicate": len(all_records) - new_count,
             "errors": errors,
         }
+
+    # ------------------------------------------------------------------
+    # Auto-pull: build sources from entity metadata
+    # ------------------------------------------------------------------
+
+    def auto_pull(
+        self,
+        entity_id: str,
+        limit: int = 500,
+        task=None,
+        extra_terms: list[str] | None = None,
+    ) -> dict:
+        """
+        Automatically ingest data from all free sources using the entity's
+        name, keywords, and entity_type to generate search queries.
+        No user configuration needed. Extra_terms are appended to the search.
+        """
+        from app.services.entity_store import entity_store
+
+        entity = entity_store.get(entity_id)
+        if not entity:
+            return {"error": f"Entity {entity_id} not found", "records_pulled": 0, "records_new": 0, "errors": []}
+
+        name = entity.name
+        keywords = entity.keywords or []
+        # Build search terms: entity name + each keyword + user-provided extras
+        search_terms = [name] + [k for k in keywords if k.lower() != name.lower()]
+        if extra_terms:
+            for t in extra_terms:
+                if t.strip() and t.strip().lower() not in [s.lower() for s in search_terms]:
+                    search_terms.append(t.strip())
+
+        # Pick relevant subreddits based on entity type
+        type_subreddits = {
+            "brand":      ["all"],
+            "person":     ["all"],
+            "influencer": ["all"],
+            "company":    ["all", "technology", "business"],
+            "product":    ["all", "reviews"],
+            "game":       ["all", "gaming", "games"],
+            "app":        ["all", "apps"],
+        }
+        subreddits = type_subreddits.get(entity.entity_type, ["all"])
+
+        # Build sources list for each free platform
+        sources: list[dict] = []
+
+        # 1. Reddit (RSS — free, searches all subreddits for entity terms)
+        sources.append({"platform": "reddit", "ids": subreddits, "_query": name})
+
+        # 2. Hacker News (free, no key)
+        sources.append({"platform": "hackernews", "ids": search_terms[:3]})
+
+        # 3. YouTube (if key configured — search by keywords)
+        if self.config.YOUTUBE_API_KEY and self.config.YOUTUBE_API_KEY != "...":
+            sources.append({"platform": "youtube_search", "ids": search_terms[:2]})
+
+        # 4. Google News RSS (always free)
+        import urllib.parse
+        news_feeds = []
+        for term in search_terms[:2]:
+            q = urllib.parse.quote_plus(term)
+            news_feeds.append(f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en")
+        sources.append({"platform": "rss", "ids": news_feeds})
+
+        logger.info(f"Auto-pull for entity '{name}': {len(sources)} source groups, terms={search_terms}")
+
+        # Execute pull with the auto-generated sources
+        all_records: list[PostRecord] = []
+        errors: list[str] = []
+
+        def _progress(msg: str, pct: int):
+            logger.info(msg)
+            if task:
+                from app.utils.task_manager import task_manager
+                task_manager.update(task.task_id, progress=pct)
+
+        total = len(sources)
+        for i, source in enumerate(sources):
+            platform = source["platform"]
+            ids = source["ids"]
+            pct = int(((i + 1) / total) * 80)
+
+            try:
+                if platform == "reddit":
+                    _progress(f"Auto: Reddit RSS for '{name}'", pct)
+                    query = source.get("_query", name)
+                    if self.config.REDDIT_CLIENT_ID and self.config.REDDIT_CLIENT_ID != "...":
+                        records = self.pull_reddit(entity_id, ids, limit)
+                    else:
+                        records = self.pull_reddit_rss(entity_id, ids, query=query, limit=limit)
+                    all_records.extend(records)
+
+                elif platform == "hackernews":
+                    _progress(f"Auto: Hacker News for {ids}", pct)
+                    records = self.pull_hackernews(entity_id, ids, limit)
+                    all_records.extend(records)
+
+                elif platform == "youtube_search":
+                    _progress(f"Auto: YouTube search for {ids}", pct)
+                    records = self._youtube_search(entity_id, ids, limit)
+                    all_records.extend(records)
+
+                elif platform == "rss":
+                    _progress(f"Auto: RSS/News feeds", pct)
+                    records = self.pull_rss(entity_id, ids)
+                    all_records.extend(records)
+
+            except Exception as exc:
+                msg = f"Auto-pull {platform} failed: {exc}"
+                logger.error(msg)
+                errors.append(msg)
+
+        _progress("Enqueuing records...", 90)
+        new_count = self.enqueue(all_records, entity_id)
+
+        return {
+            "records_pulled": len(all_records),
+            "records_new": new_count,
+            "records_duplicate": len(all_records) - new_count,
+            "errors": errors,
+            "sources_used": [s["platform"] for s in sources],
+        }
+
+    def _youtube_search(
+        self,
+        entity_id: str,
+        queries: list[str],
+        limit: int = 100,
+    ) -> list[PostRecord]:
+        """Search YouTube for videos by keyword, then pull their comments."""
+        try:
+            from googleapiclient.discovery import build as yt_build
+        except ImportError:
+            return []
+
+        if not self.config.YOUTUBE_API_KEY or self.config.YOUTUBE_API_KEY == "...":
+            return []
+
+        yt = yt_build("youtube", "v3", developerKey=self.config.YOUTUBE_API_KEY)
+        video_ids: list[str] = []
+
+        for query in queries:
+            try:
+                search_resp = yt.search().list(
+                    part="id",
+                    q=query,
+                    type="video",
+                    maxResults=5,
+                    order="relevance",
+                ).execute()
+                for item in search_resp.get("items", []):
+                    vid = item.get("id", {}).get("videoId")
+                    if vid:
+                        video_ids.append(vid)
+            except Exception as exc:
+                logger.error(f"YouTube search '{query}' failed: {exc}")
+
+        if not video_ids:
+            return []
+
+        return self.pull_youtube(entity_id, video_ids[:10], limit)
 
     # ------------------------------------------------------------------
     # Scheduled pull

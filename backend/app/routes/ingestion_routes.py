@@ -40,6 +40,32 @@ def pull():
     return jsonify({"task_id": task.task_id}), 202
 
 
+@ingestion_bp.post("/auto-pull")
+def auto_pull():
+    """
+    POST /api/ingestion/auto-pull
+    Body: {entity_id, limit?}
+    Automatically ingests from all free sources using entity name + keywords.
+    Returns: {task_id}
+    """
+    body = request.get_json(force=True) or {}
+    entity_id = body.get("entity_id")
+    limit = int(body.get("limit", 500))
+    extra_terms = body.get("extra_terms", [])
+
+    if not entity_id:
+        return jsonify({"error": "entity_id is required"}), 400
+
+    def _run(task, entity_id=entity_id, limit=limit, extra_terms=extra_terms):
+        result = ingestion_service.auto_pull(entity_id, limit, task=task, extra_terms=extra_terms)
+        new_count = result.get("records_new", 0)
+        corpus_drift_detector.check_and_refresh(entity_id, new_count)
+        return result
+
+    task = task_manager.run_async("ingestion_auto_pull", _run)
+    return jsonify({"task_id": task.task_id}), 202
+
+
 @ingestion_bp.get("/status/<task_id>")
 def status(task_id: str):
     """GET /api/ingestion/status/<task_id>"""

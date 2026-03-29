@@ -38,6 +38,16 @@ def create():
         return jsonify({"error": str(exc)}), 400
 
 
+@simulation_bp.get("/list")
+def list_simulations():
+    """GET /api/simulation/list?entity_id=X"""
+    entity_id = request.args.get("entity_id")
+    if not entity_id:
+        return jsonify({"error": "entity_id query param required"}), 400
+    sims = simulation_manager.list_simulations(entity_id)
+    return jsonify({"simulations": sims})
+
+
 @simulation_bp.post("/<sim_id>/start")
 def start(sim_id: str):
     """POST /api/simulation/<sim_id>/start"""

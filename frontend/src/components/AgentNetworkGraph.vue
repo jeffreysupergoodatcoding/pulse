@@ -7,9 +7,9 @@
     <div class="ang-dot-grid" />
 
     <div class="ang-toolbar">
-      <button class="ang-btn" @click="resetView" title="Re-center">⌖</button>
-      <button class="ang-btn" :class="{ active: autoRotate }" @click="toggleRotate" title="Auto-rotate">↻</button>
-      <button class="ang-btn" @click="fitView" title="Fit to screen">⤢</button>
+      <button class="ang-btn" @click.stop="resetView" title="Re-center">⌖</button>
+      <button class="ang-btn" :class="{ active: autoRotate }" @click.stop="toggleRotate" title="Auto-rotate">↻</button>
+      <button class="ang-btn" @click.stop="fitView" title="Fit to screen">⤢</button>
     </div>
 
     <div class="ang-popup" :class="{ visible: !!selected }">
@@ -204,6 +204,20 @@ function initGraph(w, h) {
   graphInstance.d3Force('z-plane', null)
   graphInstance.d3Force('charge')?.strength(-100)
   graphInstance.d3Force('link')?.distance(40).strength(0.7)
+
+  // Configure orbit controls for trackpad-friendly interaction:
+  // - Left click/one-finger drag = rotate
+  // - Scroll/pinch = zoom (dampened)
+  // - Right click/two-finger drag = pan
+  const controls = graphInstance.controls()
+  if (controls) {
+    controls.enableDamping = true
+    controls.dampingFactor = 0.12
+    controls.rotateSpeed = 0.8
+    controls.zoomSpeed = 0.5        // reduce zoom sensitivity for trackpad
+    controls.minDistance = 50
+    controls.maxDistance = 1500
+  }
 }
 
 watch(() => props.actions, (newActions) => {
@@ -212,19 +226,32 @@ watch(() => props.actions, (newActions) => {
   pushToGraph()
 }, { deep: false })
 
-function resetView() { graphInstance?.zoomToFit(800, 80) }
-function fitView()   { graphInstance?.zoomToFit(400, 40) }
+function resetView() {
+  if (!graphInstance) return
+  // Reset camera to default front-facing position, then zoom to fit
+  graphInstance.cameraPosition({ x: 0, y: 0, z: 300 }, { x: 0, y: 0, z: 0 }, 600)
+  setTimeout(() => graphInstance?.zoomToFit(600, 60), 650)
+}
+
+function fitView() {
+  if (!graphInstance) return
+  graphInstance.zoomToFit(400, 20)
+}
 
 function toggleRotate() {
   autoRotate.value = !autoRotate.value
   if (autoRotate.value) {
     let angle = 0
     rotateHandle = setInterval(() => {
+      if (!graphInstance) return
       angle += 0.004
-      graphInstance?.cameraPosition({
-        x: 400 * Math.sin(angle),
-        y: 0,
-        z: 400 * Math.cos(angle),
+      // Calculate distance from current camera to keep consistent orbit radius
+      const pos = graphInstance.cameraPosition()
+      const dist = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z) || 300
+      graphInstance.cameraPosition({
+        x: dist * Math.sin(angle),
+        y: pos.y * 0.95, // gently level out vertical offset
+        z: dist * Math.cos(angle),
       })
     }, 16)
   } else {
@@ -281,11 +308,17 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* Dedicated container for ForceGraph3D — Vue treats this as an opaque leaf node */
+/* Dedicated container for ForceGraph3D — Vue treats this as an opaque leaf node.
+   z-index: 0 creates a stacking context so ForceGraph3D's internal overlays
+   (CSS2DRenderer, tooltips) stay confined below the Vue-managed UI. */
 .ang-graph-container {
   position: absolute;
   inset: 0;
   z-index: 0;
+}
+/* Prevent ForceGraph3D's internal tooltip/label overlay from capturing clicks above the toolbar */
+.ang-graph-container :deep(div) {
+  z-index: auto !important;
 }
 
 /* Dot-grid — sits ABOVE the 3D canvas using z-index */
@@ -298,14 +331,15 @@ onUnmounted(() => {
   z-index: 1;
 }
 
-/* Toolbar */
+/* Toolbar — must sit above ForceGraph3D's internal CSS2D overlay */
 .ang-toolbar {
   position: absolute;
   top: 12px;
   right: 14px;
   display: flex;
   gap: 4px;
-  z-index: 10;
+  z-index: 100;
+  pointer-events: auto;
 }
 .ang-btn {
   width: 32px; height: 32px;

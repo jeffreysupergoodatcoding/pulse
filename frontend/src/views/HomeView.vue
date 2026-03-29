@@ -6,10 +6,10 @@
     <!-- Header -->
     <div class="view-header">
       <div>
-        <h1 class="view-title">Entities</h1>
+        <h1 class="view-title">Projects</h1>
         <p class="view-subtitle">Track brands, people, and influencers across social platforms</p>
       </div>
-      <button class="btn btn-primary" @click="drawerOpen = true">+ New Entity</button>
+      <button class="btn btn-primary" @click="drawerOpen = true">+ New Project</button>
     </div>
 
     <!-- Entity grid -->
@@ -52,59 +52,31 @@
     <div v-else-if="!loadingEntities" class="empty-state">
       <div class="empty-dot-grid" aria-hidden="true" />
       <div class="empty-icon">◎</div>
-      <div class="empty-title">No entities yet</div>
-      <div class="empty-sub">Create your first entity to start tracking and simulating sentiment.</div>
-      <button class="btn btn-primary" @click="drawerOpen = true">+ New Entity</button>
+      <div class="empty-title">No projects yet</div>
+      <div class="empty-sub">Create your first project to start tracking and simulating sentiment.</div>
+      <button class="btn btn-primary" @click="drawerOpen = true">+ New Project</button>
     </div>
 
-    <!-- New Entity Drawer -->
+    <!-- New Project Drawer -->
     <div v-if="drawerOpen" class="drawer-overlay" @click.self="drawerOpen = false">
       <div class="drawer">
         <div class="drawer-header">
           <div class="drawer-header-left">
-            <span class="drawer-title">New Entity</span>
+            <span class="drawer-title">New Project</span>
             <span class="drawer-subtitle">Define a brand, person, or influencer to track</span>
           </div>
           <button class="drawer-close" @click="drawerOpen = false" aria-label="Close">×</button>
         </div>
 
         <div class="drawer-body">
-          <div class="grid-2">
-            <div>
-              <label>Name *</label>
-              <input v-model="form.name" placeholder="Nike, Taylor Swift…" />
-            </div>
-            <div>
-              <label>Type</label>
-              <select v-model="form.entity_type">
-                <option value="brand">Brand</option>
-                <option value="person">Person</option>
-                <option value="influencer">Influencer</option>
-              </select>
-            </div>
+          <div>
+            <label>Title *</label>
+            <input v-model="form.name" placeholder="Nike, Taylor Swift, OpenAI…" />
           </div>
 
           <div class="mt-3">
             <label>Description</label>
-            <input v-model="form.description" placeholder="Brief description…" />
-          </div>
-
-          <div class="mt-3">
-            <label>Keywords <span class="hint">(comma-separated)</span></label>
-            <input v-model="form.keywords_raw" placeholder="nike, air max, sneakers" />
-          </div>
-
-          <div class="drawer-section-label">Source Config</div>
-
-          <div class="grid-2">
-            <div>
-              <label>Reddit subreddits</label>
-              <input v-model="form.reddit_subreddits" placeholder="sneakers, nba" />
-            </div>
-            <div>
-              <label>Twitter queries</label>
-              <input v-model="form.twitter_queries" placeholder="#Nike, Nike shoes" />
-            </div>
+            <textarea v-model="form.description" rows="3" placeholder="What is this project about? What do you want to simulate?"></textarea>
           </div>
 
           <div v-if="error" class="drawer-error">{{ error }}</div>
@@ -113,7 +85,7 @@
         <div class="drawer-footer">
           <button class="btn btn-secondary" @click="drawerOpen = false">Cancel</button>
           <button class="btn btn-primary" :disabled="!form.name || saving" @click="addEntity">
-            {{ saving ? 'Creating…' : 'Create Entity' }}
+            {{ saving ? 'Creating…' : 'Create Project' }}
           </button>
         </div>
       </div>
@@ -122,11 +94,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { graph as graphApi } from '../api/graph.js'
 
 const router = useRouter()
+const route = useRoute()
 const entities = ref([])
 const loadingEntities = ref(true)
 const saving = ref(false)
@@ -134,8 +107,7 @@ const error = ref('')
 const drawerOpen = ref(false)
 
 const form = ref({
-  name: '', entity_type: 'brand', description: '',
-  keywords_raw: '', reddit_subreddits: '', twitter_queries: '',
+  name: '', description: '',
 })
 
 // Subtle neutral palette for avatars — B&W theme
@@ -168,20 +140,15 @@ async function addEntity() {
   error.value = ''
   saving.value = true
   try {
-    const keywords = form.value.keywords_raw.split(',').map(s => s.trim()).filter(Boolean)
-    const subreddits = form.value.reddit_subreddits.split(',').map(s => s.trim()).filter(Boolean)
-    const twitter_queries = form.value.twitter_queries.split(',').map(s => s.trim()).filter(Boolean)
+    // Derive keywords from the title
+    const keywords = form.value.name.split(/[\s,]+/).filter(s => s.length > 2)
     await graphApi.createEntity({
       name: form.value.name,
-      entity_type: form.value.entity_type,
+      entity_type: 'brand',
       description: form.value.description,
       keywords,
-      source_config: {
-        reddit: { subreddits },
-        twitter: { queries: twitter_queries },
-      },
     })
-    form.value = { name: '', entity_type: 'brand', description: '', keywords_raw: '', reddit_subreddits: '', twitter_queries: '' }
+    form.value = { name: '', description: '' }
     drawerOpen.value = false
     await loadEntities()
   } catch (e) {
@@ -201,7 +168,20 @@ function formatScore(s) {
 }
 function truncate(s, n) { return s?.length > n ? s.slice(0, n) + '…' : s }
 
-onMounted(loadEntities)
+watch(() => route.query.new, (val) => {
+  if (val) {
+    drawerOpen.value = true
+    router.replace({ path: '/', query: {} })
+  }
+})
+
+onMounted(() => {
+  loadEntities()
+  if (route.query.new) {
+    drawerOpen.value = true
+    router.replace({ path: '/', query: {} })
+  }
+})
 </script>
 
 <style scoped>

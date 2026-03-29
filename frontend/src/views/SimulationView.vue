@@ -18,7 +18,7 @@
         </div>
       </div>
 
-      <!-- Step panels -->
+      <!-- Scrollable content: wizard panel + history -->
       <div class="wiz-body">
 
         <!-- Step 1: Scenario & Stimuli -->
@@ -43,12 +43,13 @@
 
           <div class="wiz-field">
             <label>Initial hot topics <span class="wiz-field-hint">— press Enter to add</span></label>
-            <div class="wiz-tags">
+            <div class="wiz-tags" @click="topicInputRef?.focus()">
               <span v-for="(tag, i) in hotTopics" :key="i" class="wiz-tag">
                 #{{ tag }}
-                <button class="wiz-tag-rm" @click="hotTopics.splice(i, 1)" aria-label="Remove topic">×</button>
+                <button class="wiz-tag-rm" @click.stop="hotTopics.splice(i, 1)" aria-label="Remove topic">×</button>
               </span>
               <input
+                ref="topicInputRef"
                 v-model="topicInput"
                 class="wiz-tag-input"
                 placeholder="Add topic…"
@@ -174,6 +175,25 @@
           </div>
         </div>
 
+        <!-- Past simulations -->
+        <div v-if="historyList.length" class="sim-history">
+          <div class="sim-history-title">Past Simulations</div>
+          <div class="sim-history-list">
+            <div
+              v-for="h in historyList"
+              :key="h.simulation_id"
+              class="sim-history-item"
+              @click="resumeSim(h.simulation_id)"
+            >
+              <span class="sim-history-id">{{ h.simulation_id.slice(0, 8) }}</span>
+              <span class="status-pill" :class="'status-' + h.status">{{ h.status }}</span>
+              <span class="sim-history-detail">{{ h.current_round }}/{{ h.total_rounds }} rounds</span>
+              <span class="sim-history-detail">{{ h.actions_count }} actions</span>
+              <span class="sim-history-date">{{ h.started_at ? new Date(h.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—' }}</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -229,17 +249,18 @@
         <button v-else class="btn btn-danger btn-sm" @click="stopSim">■ Stop</button>
 
         <button
-          v-if="status.status === 'completed' && !reportId"
+          v-if="status.status === 'completed'"
           class="btn btn-secondary btn-sm"
+          :disabled="reportStatus === 'running'"
           @click="generateReport"
         >
-          Generate Report →
+          {{ reportStatus === 'running' ? 'Generating…' : 'Generate Report →' }}
         </button>
-        <router-link
+        <button
           v-if="reportId && reportStatus === 'completed'"
-          :to="`/entity/${entityId}/report/${reportId}`"
           class="btn btn-primary btn-sm"
-        >View Report →</router-link>
+          @click="showReportModal = true"
+        >View Report</button>
 
         <button
           v-if="['completed', 'stopped', 'error'].includes(status.status)"
@@ -252,7 +273,7 @@
       <div class="sim-body">
 
         <!-- Left: Agent network -->
-        <div class="sim-pane-left">
+        <div class="sim-pane-left" :style="{ flexBasis: splitX + '%' }">
           <div class="pane-header">Agent Network</div>
           <div class="sim-graph-wrap">
             <AgentNetworkGraph
@@ -263,8 +284,11 @@
           </div>
         </div>
 
+        <!-- Horizontal drag divider -->
+        <div class="sim-divider-h" @mousedown="startDragH" />
+
         <!-- Right: Sentiment + Activity -->
-        <div class="sim-pane-right">
+        <div class="sim-pane-right" :style="{ flexBasis: (100 - splitX) + '%' }">
 
           <!-- Scenario info -->
           <div class="sim-scenario-bar" v-if="config.hypothetical_event">
@@ -321,8 +345,11 @@
             </div>
           </div>
 
+          <!-- Vertical drag divider above activity log -->
+          <div class="sim-divider-v" @mousedown="startDragV" />
+
           <!-- Agent activity log -->
-          <div class="sim-feed-section">
+          <div class="sim-feed-section" :style="{ flexBasis: feedHeight + 'px' }">
             <div class="pane-header">Agent Activity Log</div>
             <div class="sim-feed-wrap">
               <SimulationMonitor :actions="actions" :status="status" />
@@ -336,12 +363,34 @@
       <SystemConsole :sim-id="simId" :actions="actions" :status="status" />
     </template>
 
+    <!-- Report modal overlay -->
+    <Teleport to="body">
+      <div v-if="showReportModal" class="report-overlay" @click.self="showReportModal = false">
+        <div class="report-modal">
+          <div class="report-modal-header">
+            <span class="report-modal-title">Simulation Report</span>
+            <div class="report-modal-actions">
+              <button class="btn btn-secondary btn-sm" @click="downloadPdf">
+                Download PDF
+              </button>
+              <button class="report-modal-close" @click="showReportModal = false" aria-label="Close">×</button>
+            </div>
+          </div>
+          <div class="report-modal-body" ref="reportContentRef">
+            <div v-if="reportMarkdown" class="report-rendered" v-html="renderedReport"></div>
+            <div v-else class="report-loading">Loading report…</div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { marked } from 'marked'
 import { simulation as simApi } from '../api/simulation.js'
 import { report as reportApi } from '../api/report.js'
 import { persona as personaApi } from '../api/persona.js'
@@ -365,6 +414,7 @@ const selectedTemplate = ref('')
 const templates = ref([])
 const hotTopics = ref([])
 const topicInput = ref('')
+const topicInputRef = ref(null)
 const platforms = ref({ twitter: true, reddit: true })
 
 // Simulation state
@@ -378,9 +428,66 @@ const starting = ref(false)
 const injectText = ref('')
 const reportId = ref('')
 const reportStatus = ref('')
+const showReportModal = ref(false)
+const reportMarkdown = ref('')
+const reportContentRef = ref(null)
+const historyList = ref([])
+const historyLoading = ref(false)
 let pollTimer = null
 
 const config = ref({ rounds: 10, n_agents: 20, hypothetical_event: '' })
+
+// ── Resizable pane state ──
+const splitX = ref(58)       // horizontal split: left pane % width
+const feedHeight = ref(200)  // activity log height in px
+let dragType = null
+let dragStartPos = 0
+let dragStartVal = 0
+let bodyEl = null
+
+function startDragH(e) {
+  e.preventDefault()
+  dragType = 'h'
+  dragStartPos = e.clientX
+  dragStartVal = splitX.value
+  bodyEl = e.target.closest('.sim-body')
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.body.style.cursor = 'ew-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function startDragV(e) {
+  e.preventDefault()
+  dragType = 'v'
+  dragStartPos = e.clientY
+  dragStartVal = feedHeight.value
+  bodyEl = e.target.closest('.sim-pane-right')
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.body.style.cursor = 'ns-resize'
+  document.body.style.userSelect = 'none'
+}
+
+function onDrag(e) {
+  if (dragType === 'h' && bodyEl) {
+    const rect = bodyEl.getBoundingClientRect()
+    const pct = ((e.clientX - rect.left) / rect.width) * 100
+    splitX.value = Math.min(80, Math.max(25, pct))
+  } else if (dragType === 'v') {
+    const delta = dragStartPos - e.clientY
+    feedHeight.value = Math.min(600, Math.max(80, dragStartVal + delta))
+  }
+}
+
+function stopDrag() {
+  dragType = null
+  bodyEl = null
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
 
 // Computed
 const progressPct = computed(() => {
@@ -497,18 +604,71 @@ async function inject() {
 }
 
 async function generateReport() {
-  const r = await reportApi.generate(simId.value)
-  reportId.value = r.data.report_id
-  reportStatus.value = 'running'
-  pollReport()
+  try {
+    reportStatus.value = 'running'
+    reportMarkdown.value = ''
+    const r = await reportApi.generate(simId.value)
+    reportId.value = r.data.report_id
+    pollReport()
+  } catch (e) {
+    reportStatus.value = ''
+    alert(e.response?.data?.error || e.message)
+  }
 }
 
 function pollReport() {
   const t = setInterval(async () => {
-    const r = await reportApi.getStatus(reportId.value)
-    reportStatus.value = r.data.status
-    if (['completed', 'error'].includes(r.data.status)) clearInterval(t)
+    try {
+      const r = await reportApi.getStatus(reportId.value)
+      reportStatus.value = r.data.status
+      if (r.data.status === 'completed') {
+        clearInterval(t)
+        await loadReportContent()
+        showReportModal.value = true
+      } else if (r.data.status === 'error') {
+        clearInterval(t)
+        alert('Report generation failed: ' + (r.data.error || 'unknown error'))
+      }
+    } catch { /* keep polling */ }
   }, 2000)
+}
+
+async function loadReportContent() {
+  if (!reportId.value) return
+  try {
+    const r = await reportApi.getContent(reportId.value)
+    reportMarkdown.value = r.data.markdown || ''
+  } catch { /* ignore */ }
+}
+
+const renderedReport = computed(() => {
+  if (!reportMarkdown.value) return ''
+  return marked(reportMarkdown.value)
+})
+
+function downloadPdf() {
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) return
+  printWindow.document.write(`<!DOCTYPE html>
+<html><head>
+<title>Simulation Report</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #1a1a2e; line-height: 1.6; font-size: 14px; }
+  h1 { font-size: 24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+  h2 { font-size: 18px; margin-top: 28px; color: #111827; }
+  h3 { font-size: 15px; color: #374151; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; font-size: 13px; }
+  th { background: #f9fafb; font-weight: 600; }
+  code { background: #f3f4f6; padding: 2px 5px; border-radius: 3px; font-size: 12px; }
+  pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow-x: auto; }
+  blockquote { border-left: 3px solid #d1d5db; margin: 12px 0; padding: 8px 16px; color: #6b7280; }
+  ul, ol { padding-left: 24px; }
+  @media print { body { margin: 20px; } }
+</style>
+</head><body>${renderedReport.value}</body></html>`)
+  printWindow.document.close()
+  setTimeout(() => { printWindow.print() }, 300)
 }
 
 async function pollOnce() {
@@ -556,6 +716,12 @@ async function pollOnce() {
   }
 }
 
+watch(showReportModal, async (open) => {
+  if (open && reportId.value && !reportMarkdown.value) {
+    await loadReportContent()
+  }
+})
+
 function startPolling() {
   clearInterval(pollTimer)
   pollOnce() // fire immediately, don't wait 2s
@@ -572,7 +738,30 @@ function newSimulation() {
   prediction.value = {}
   reportId.value = ''
   reportStatus.value = ''
+  reportMarkdown.value = ''
   wizardStep.value = 1
+  loadHistory()
+}
+
+async function loadHistory() {
+  historyLoading.value = true
+  try {
+    const r = await simApi.list(entityId)
+    historyList.value = r.data.simulations || []
+  } catch { /* ignore */ }
+  finally { historyLoading.value = false }
+}
+
+function resumeSim(id) {
+  simId.value = id
+  localStorage.setItem(`sim_${entityId}`, id)
+  actions.value = []
+  sentimentData.value = {}
+  prediction.value = {}
+  reportId.value = ''
+  reportStatus.value = ''
+  reportMarkdown.value = ''
+  startPolling()
 }
 
 // Persist simId
@@ -587,15 +776,20 @@ onMounted(async () => {
     simId.value = saved
     startPolling()
   }
-  // Load templates for wizard
-  try {
-    const r = await personaApi.getTemplates()
-    templates.value = r.data.templates || r.data || []
-    if (templates.value.length) selectedTemplate.value = templates.value[0].id
-  } catch { /* ignore */ }
+  // Load templates and history in parallel
+  await Promise.allSettled([
+    personaApi.getTemplates().then(r => {
+      templates.value = r.data.templates || r.data || []
+      if (templates.value.length) selectedTemplate.value = templates.value[0].id
+    }),
+    loadHistory(),
+  ])
 })
 
-onUnmounted(() => clearInterval(pollTimer))
+onUnmounted(() => {
+  clearInterval(pollTimer)
+  stopDrag()
+})
 </script>
 
 <style scoped>
@@ -705,12 +899,13 @@ onUnmounted(() => clearInterval(pollTimer))
 .wiz-body {
   flex: 1;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 48px 24px;
   overflow-y: auto;
   position: relative;
   z-index: 1;
+  gap: 32px;
 }
 
 .wiz-panel {
@@ -927,6 +1122,63 @@ onUnmounted(() => clearInterval(pollTimer))
   border-top: 1px solid var(--border-subtle);
 }
 
+/* ── Simulation history ──────────────────────────── */
+.sim-history {
+  width: 100%;
+  max-width: 580px;
+}
+.sim-history-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+  font-family: var(--font-sans);
+}
+.sim-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sim-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.sim-history-item:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+  box-shadow: var(--shadow-sm);
+}
+.sim-history-id {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.sim-history-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.sim-history-date {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* ── Control bar ────────────────────────────────── */
 .sim-controls {
   display: flex;
@@ -1001,8 +1253,7 @@ onUnmounted(() => clearInterval(pollTimer))
 /* ── Split pane body ────────────────────────────── */
 .sim-body {
   flex: 1;
-  display: grid;
-  grid-template-columns: 58fr 42fr;
+  display: flex;
   overflow: hidden;
   min-height: 0;
 }
@@ -1010,11 +1261,26 @@ onUnmounted(() => clearInterval(pollTimer))
 .sim-pane-left {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-subtle);
   min-height: 0;
   overflow: hidden;
   background: #FFFFFF;
   position: relative;
+  flex-shrink: 0;
+}
+
+/* Horizontal divider between left/right panes */
+.sim-divider-h {
+  width: 5px;
+  cursor: ew-resize;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+  transition: background 0.15s;
+}
+.sim-divider-h:hover,
+.sim-divider-h:active {
+  background: var(--border-strong);
 }
 
 /* AgentNetworkGraph handles its own dot-grid internally */
@@ -1068,10 +1334,11 @@ onUnmounted(() => clearInterval(pollTimer))
   font-family: var(--font-mono);
 }
 
-/* Sentiment section */
+/* Sentiment section — flexes to fill space above the activity log */
 .sim-sentiment-section {
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -1137,13 +1404,28 @@ onUnmounted(() => clearInterval(pollTimer))
 .sim-traj-stat span { font-size: 10px; color: var(--text-faint); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 .sim-traj-stat strong { color: var(--text-primary); font-weight: 600; letter-spacing: -0.2px; }
 
+/* Vertical divider above activity log */
+.sim-divider-v {
+  height: 5px;
+  cursor: ns-resize;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+  transition: background 0.15s;
+}
+.sim-divider-v:hover,
+.sim-divider-v:active {
+  background: var(--border-strong);
+}
+
 /* Feed section */
 .sim-feed-section {
-  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  flex-shrink: 0;
 }
 .sim-feed-wrap {
   flex: 1;
@@ -1154,4 +1436,171 @@ onUnmounted(() => clearInterval(pollTimer))
 }
 
 textarea { resize: vertical; }
+
+/* ── Report modal ─────────────────────────────── */
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.report-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.report-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.report-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.report-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.report-modal-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.report-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.report-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  min-height: 0;
+}
+
+.report-loading {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  padding: 40px 0;
+}
+
+/* Rendered markdown */
+.report-rendered {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-family: var(--font-sans);
+}
+.report-rendered :deep(h1) {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-subtle);
+  letter-spacing: -0.5px;
+}
+.report-rendered :deep(h2) {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 28px 0 10px;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.report-rendered :deep(h3) {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--text-secondary);
+}
+.report-rendered :deep(p) {
+  margin: 0 0 12px;
+}
+.report-rendered :deep(ul),
+.report-rendered :deep(ol) {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+.report-rendered :deep(li) {
+  margin-bottom: 4px;
+}
+.report-rendered :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.report-rendered :deep(th),
+.report-rendered :deep(td) {
+  border: 1px solid var(--border-subtle);
+  padding: 8px 12px;
+  text-align: left;
+}
+.report-rendered :deep(th) {
+  background: var(--bg-canvas);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+.report-rendered :deep(blockquote) {
+  border-left: 3px solid var(--border-default);
+  margin: 12px 0;
+  padding: 8px 16px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.report-rendered :deep(code) {
+  background: var(--bg-overlay);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.report-rendered :deep(pre) {
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+  padding: 14px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.report-rendered :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+.report-rendered :deep(strong) {
+  font-weight: 600;
+}
 </style>

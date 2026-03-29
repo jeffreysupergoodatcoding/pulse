@@ -1,6 +1,7 @@
 import api from './index.js'
 
 export const simulation = {
+  list: (entityId) => api.get('/simulation/list', { params: { entity_id: entityId } }),
   create: (body) => api.post('/simulation/create', body),
   start: (simId, body) => api.post(`/simulation/${simId}/start`, body),
   getStatus: (simId) => api.get(`/simulation/${simId}/status`),

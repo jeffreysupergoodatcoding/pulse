@@ -7,6 +7,20 @@
       </div>
     </div>
 
+    <!-- Mode toggle -->
+    <div class="ingest-mode-toggle">
+      <button
+        class="mode-btn"
+        :class="{ active: mode === 'auto' }"
+        @click="mode = 'auto'"
+      >Auto</button>
+      <button
+        class="mode-btn"
+        :class="{ active: mode === 'manual' }"
+        @click="mode = 'manual'"
+      >Manual</button>
+    </div>
+
     <!-- Slim progress bar (shown during pull) -->
     <div v-if="taskId" class="ingest-progress-wrap">
       <div class="ingest-progress-bar" :style="{ width: (taskStatus.progress || 5) + '%' }" />
@@ -21,8 +35,62 @@
       </span>
     </div>
 
-    <div class="ingest-grid">
-      <!-- Sources card -->
+    <!-- ── AUTO MODE ──────────────────────────────── -->
+    <div v-if="mode === 'auto'" class="ingest-grid">
+      <div class="card">
+        <div class="card-label">What to search for</div>
+        <p class="auto-desc">
+          Automatically searches Reddit, Hacker News, YouTube, and Google News
+          using the entity's name and keywords. Add extra search terms below to
+          refine what gets pulled.
+        </p>
+
+        <div class="auto-field">
+          <label>Extra search terms <span class="auto-hint">— comma-separated, optional</span></label>
+          <input
+            v-model="autoExtraTerms"
+            placeholder="e.g. controversy, collaboration, earnings report"
+          />
+        </div>
+
+        <div class="limit-row">
+          <label class="limit-label">Max per source</label>
+          <input v-model.number="limit" type="number" min="5" max="500" class="limit-input" />
+        </div>
+
+        <div class="pull-row">
+          <button
+            class="btn btn-primary pull-btn"
+            :disabled="pulling || autoPulling"
+            @click="autoPull"
+          >
+            {{ autoPulling ? 'Ingesting…' : 'Auto-Ingest' }}
+          </button>
+        </div>
+
+        <div v-if="taskStatus.errors?.length" class="error-list">
+          <div v-for="(e, i) in taskStatus.errors" :key="i" class="error-item">{{ e }}</div>
+        </div>
+      </div>
+
+      <!-- Preview card -->
+      <div class="card">
+        <div class="card-label-row">
+          <div class="card-label">Preview</div>
+          <button class="btn btn-secondary btn-sm" @click="loadPreview">Refresh</button>
+        </div>
+        <div v-if="preview.length" class="preview-list">
+          <div v-for="(p, i) in preview.slice(0, 10)" :key="i" class="preview-item">
+            <span class="preview-badge">{{ p.platform }}</span>
+            <span class="preview-text">{{ truncate(p.content, 120) }}</span>
+          </div>
+        </div>
+        <div v-else class="preview-empty">No ingested posts yet.</div>
+      </div>
+    </div>
+
+    <!-- ── MANUAL MODE ────────────────────────────── -->
+    <div v-else class="ingest-grid">
       <div class="card">
         <div class="card-label">Sources</div>
 
@@ -74,7 +142,7 @@
           <button class="btn btn-secondary btn-sm" @click="loadPreview">Refresh</button>
         </div>
         <div v-if="preview.length" class="preview-list">
-          <div v-for="(p, i) in preview.slice(0, 6)" :key="i" class="preview-item">
+          <div v-for="(p, i) in preview.slice(0, 10)" :key="i" class="preview-item">
             <span class="preview-badge">{{ p.platform }}</span>
             <span class="preview-text">{{ truncate(p.content, 120) }}</span>
           </div>
@@ -91,7 +159,7 @@
           <div class="build-graph-title">Build Knowledge Graph</div>
           <div class="build-graph-sub">Run GraphRAG on ingested posts to populate the knowledge graph</div>
           <div v-if="buildResult" class="build-graph-result">
-            ✓ {{ buildResult.nodes_added }} nodes · {{ buildResult.edges_added }} edges · {{ buildResult.episodes_added }} episodes
+            {{ buildResult.nodes_added }} nodes · {{ buildResult.edges_added }} edges · {{ buildResult.episodes_added }} episodes
           </div>
         </div>
       </div>
@@ -111,17 +179,25 @@ import { graph as graphApi } from '../api/graph.js'
 const route = useRoute()
 const entityId = route.params.id
 
+const mode = ref('auto')
+const autoExtraTerms = ref('')
+
 const platforms = [
-  { key: 'reddit',  name: 'Reddit',     placeholder: 'subreddits, comma-separated (e.g. Nike, Sneakers)' },
-  { key: 'twitter', name: 'Twitter / X', placeholder: 'search queries, comma-separated (e.g. Nike, #Nike)' },
-  { key: 'youtube', name: 'YouTube',    placeholder: 'video IDs, comma-separated' },
-  { key: 'rss',     name: 'RSS',        placeholder: 'feed URLs, comma-separated' },
+  { key: 'reddit',     name: 'Reddit',        placeholder: 'subreddits, comma-separated (e.g. Nike, Sneakers)' },
+  { key: 'twitter',    name: 'Twitter / X',   placeholder: 'search queries, comma-separated (e.g. Nike, #Nike)' },
+  { key: 'youtube',    name: 'YouTube',       placeholder: 'video IDs, comma-separated' },
+  { key: 'hackernews', name: 'Hacker News',   placeholder: 'search queries, comma-separated (e.g. OpenAI, LLM, startup)' },
+  { key: 'amazon',     name: 'Amazon',        placeholder: 'ASINs, comma-separated (e.g. B08N5WRWNW)' },
+  { key: 'appstore',   name: 'App Store',     placeholder: 'app-name/id123456, comma-separated (e.g. nike/id430865257)' },
+  { key: 'gplay',      name: 'Google Play',   placeholder: 'package IDs, comma-separated (e.g. com.nike.omega)' },
+  { key: 'rss',        name: 'RSS',           placeholder: 'feed URLs, comma-separated' },
 ]
 
-const enabled = ref({ reddit: true, twitter: false, youtube: false, rss: false })
-const sources = ref({ reddit: '', twitter: '', youtube: '', rss: '' })
+const enabled = ref({ reddit: true, twitter: false, youtube: false, hackernews: false, amazon: false, appstore: false, gplay: false, rss: false })
+const sources = ref({ reddit: '', twitter: '', youtube: '', hackernews: '', amazon: '', appstore: '', gplay: '', rss: '' })
 const limit = ref(200)
 const pulling = ref(false)
+const autoPulling = ref(false)
 const taskId = ref('')
 const taskStatus = ref({})
 const preview = ref([])
@@ -146,10 +222,14 @@ function buildSourcesPayload() {
 function buildSourceConfig() {
   const toList = (str) => str.split(',').map(s => s.trim()).filter(Boolean)
   return {
-    reddit:  { subreddits: enabled.value.reddit  ? toList(sources.value.reddit)  : [] },
-    twitter: { queries:    enabled.value.twitter ? toList(sources.value.twitter) : [] },
-    youtube: { video_ids:  enabled.value.youtube ? toList(sources.value.youtube) : [], channel_ids: [] },
-    rss:     { feed_urls:  enabled.value.rss     ? toList(sources.value.rss)     : [] },
+    reddit:     { subreddits: enabled.value.reddit     ? toList(sources.value.reddit)     : [] },
+    twitter:    { queries:    enabled.value.twitter     ? toList(sources.value.twitter)    : [] },
+    youtube:    { video_ids:  enabled.value.youtube     ? toList(sources.value.youtube)    : [], channel_ids: [] },
+    hackernews: { queries:    enabled.value.hackernews  ? toList(sources.value.hackernews) : [] },
+    amazon:     { asins:      enabled.value.amazon      ? toList(sources.value.amazon)     : [] },
+    appstore:   { app_ids:    enabled.value.appstore    ? toList(sources.value.appstore)   : [] },
+    gplay:      { app_ids:    enabled.value.gplay       ? toList(sources.value.gplay)      : [] },
+    rss:        { feed_urls:  enabled.value.rss         ? toList(sources.value.rss)        : [] },
   }
 }
 
@@ -173,6 +253,26 @@ async function pull() {
   }
 }
 
+async function autoPull() {
+  autoPulling.value = true
+  taskId.value = ''
+  taskStatus.value = {}
+  try {
+    const extra = autoExtraTerms.value.split(',').map(s => s.trim()).filter(Boolean)
+    const r = await ingestionApi.autoPull({
+      entity_id: entityId,
+      limit: limit.value,
+      extra_terms: extra.length ? extra : undefined,
+    })
+    taskId.value = r.data.task_id
+    pollTask()
+  } catch (e) {
+    alert(e.response?.data?.error || e.message)
+  } finally {
+    autoPulling.value = false
+  }
+}
+
 function pollTask() {
   clearInterval(pollTimer)
   pollTimer = setInterval(async () => {
@@ -188,7 +288,7 @@ function pollTask() {
 
 async function loadPreview() {
   try {
-    const r = await ingestionApi.preview(entityId)
+    const r = await ingestionApi.preview(entityId, 20)
     preview.value = r.data.records || r.data.posts || r.data || []
   } catch { /* ignore */ }
 }
@@ -212,16 +312,75 @@ onMounted(async () => {
   try {
     const r = await graphApi.getEntity(entityId)
     const cfg = r.data.source_config || {}
-    if (cfg.reddit?.subreddits?.length)  { sources.value.reddit  = cfg.reddit.subreddits.join(', ');  enabled.value.reddit  = true }
-    if (cfg.twitter?.queries?.length)    { sources.value.twitter = cfg.twitter.queries.join(', ');    enabled.value.twitter = true }
-    if (cfg.youtube?.video_ids?.length)  { sources.value.youtube = cfg.youtube.video_ids.join(', ');  enabled.value.youtube = true }
-    if (cfg.rss?.feed_urls?.length)      { sources.value.rss     = cfg.rss.feed_urls.join(', ');      enabled.value.rss     = true }
+    if (cfg.reddit?.subreddits?.length)    { sources.value.reddit     = cfg.reddit.subreddits.join(', ');     enabled.value.reddit     = true }
+    if (cfg.twitter?.queries?.length)      { sources.value.twitter    = cfg.twitter.queries.join(', ');      enabled.value.twitter    = true }
+    if (cfg.youtube?.video_ids?.length)    { sources.value.youtube    = cfg.youtube.video_ids.join(', ');    enabled.value.youtube    = true }
+    if (cfg.hackernews?.queries?.length)   { sources.value.hackernews = cfg.hackernews.queries.join(', ');   enabled.value.hackernews = true }
+    if (cfg.amazon?.asins?.length)         { sources.value.amazon     = cfg.amazon.asins.join(', ');         enabled.value.amazon     = true }
+    if (cfg.appstore?.app_ids?.length)     { sources.value.appstore   = cfg.appstore.app_ids.join(', ');     enabled.value.appstore   = true }
+    if (cfg.gplay?.app_ids?.length)        { sources.value.gplay      = cfg.gplay.app_ids.join(', ');        enabled.value.gplay      = true }
+    if (cfg.rss?.feed_urls?.length)        { sources.value.rss        = cfg.rss.feed_urls.join(', ');        enabled.value.rss        = true }
   } catch { /* ignore */ }
   loadPreview()
 })
 </script>
 
 <style scoped>
+/* Mode toggle */
+.ingest-mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.mode-btn {
+  padding: 7px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  border: none;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  letter-spacing: -0.1px;
+}
+.mode-btn:not(:last-child) {
+  border-right: 1px solid var(--border-default);
+}
+.mode-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.mode-btn.active {
+  background: var(--text-primary);
+  color: #FFFFFF;
+}
+
+/* Auto mode */
+.auto-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+.auto-field {
+  margin-bottom: 16px;
+}
+.auto-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: block;
+}
+.auto-hint {
+  font-weight: 400;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
 .ingest-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -381,7 +540,8 @@ onMounted(async () => {
 .ingest-progress-wrap {
   height: 3px;
   background: var(--bg-overlay);
-  margin: -24px -24px 0;
+  margin: 0 0 4px;
+  border-radius: 2px;
   overflow: hidden;
 }
 .ingest-progress-bar {
