@@ -57,10 +57,14 @@ async function loadSets() {
   try {
     const r = await personaApi.getSets(entityId)
     const sets = r.data.persona_sets || r.data || []
-    if (sets.length) {
-      const latest = sets[sets.length - 1]
-      archetypes.value = latest.archetypes || []
-    }
+    if (!sets.length) return
+    // Sort by created_at descending and take the latest
+    const sorted = [...sets].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    const latest = sorted[0]
+    const setId = latest.set_id || latest.id
+    if (!setId) return
+    const full = await personaApi.getSet(entityId, setId)
+    archetypes.value = full.data.archetypes || []
   } catch { /* ignore */ }
 }
 
@@ -100,13 +104,17 @@ function pollProgress() {
   clearInterval(pollTimer)
   pollTimer = setInterval(async () => {
     if (!taskId.value) return
-    const r = await personaApi.getStatus(taskId.value)
-    taskStatus.value = r.data.status
-    progress.value = r.data.progress || 0
-    if (['completed', 'error'].includes(r.data.status)) {
-      clearInterval(pollTimer)
-      generating.value = false
-      if (r.data.status === 'completed') loadSets()
+    try {
+      const r = await personaApi.getStatus(taskId.value)
+      taskStatus.value = r.data.status
+      progress.value = r.data.progress || 0
+      if (['completed', 'error'].includes(r.data.status)) {
+        clearInterval(pollTimer)
+        generating.value = false
+        if (r.data.status === 'completed') loadSets()
+      }
+    } catch {
+      // Network error — keep polling, don't get stuck
     }
   }, 1500)
 }

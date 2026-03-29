@@ -1,11 +1,11 @@
 <template>
   <div class="graph-wrap">
-    <!-- Dot-grid background overlay -->
-    <div class="graph-dot-grid" />
-
+    <!-- ForceGraph3D mounts into this dedicated div — Vue does NOT manage its children -->
     <div ref="containerRef" class="graph-container" />
 
-    <!-- Empty state -->
+    <!-- Vue-managed overlays -->
+    <div class="graph-dot-grid" />
+
     <div v-if="!hasData" class="graph-empty">
       <div class="empty-inner">
         <span class="empty-icon">◎</span>
@@ -13,19 +13,16 @@
       </div>
     </div>
 
-    <!-- Stats chip -->
     <div v-if="hasData" class="graph-stats">
       {{ nodes.length }} nodes · {{ edges.length }} edges
     </div>
 
-    <!-- Controls toolbar (top-right) -->
     <div class="graph-toolbar">
       <button class="ctrl-btn" @click="resetCamera" title="Reset view">⌖</button>
       <button class="ctrl-btn" :class="{ active: autoRotate }" @click="toggleRotate" title="Auto-rotate">↻</button>
       <button class="ctrl-btn" @click="fitGraph" title="Fit to screen">⤢</button>
     </div>
 
-    <!-- Node/edge relationship popup -->
     <div class="graph-info-panel" :class="{ visible: !!selectedNode }">
       <button class="info-close" @click="selectedNode = null" aria-label="Close">×</button>
       <div v-if="selectedNode">
@@ -54,7 +51,6 @@
       </div>
     </div>
 
-    <!-- Legend (bottom-left pill chips) -->
     <div class="graph-legend">
       <span class="leg-chip" style="--c:#6366F1"><span class="leg-dot" />Entity</span>
       <span class="leg-chip" style="--c:#0EA5E9"><span class="leg-dot" />Topic</span>
@@ -132,7 +128,7 @@ function initGraph() {
   graphInstance = ForceGraph3D({ controlType: 'orbit' })(containerRef.value)
     .width(w)
     .height(h)
-    .backgroundColor('#FFFFFF')
+    .backgroundColor('rgba(0,0,0,0)')
     .showNavInfo(false)
     // Links
     .linkColor(() => 'rgba(150,158,180,0.25)')
@@ -264,6 +260,11 @@ onUnmounted(() => {
   clearInterval(rotateHandle)
   resizeObserver?.disconnect()
   if (graphInstance) {
+    // Stop animation and dispose resources — do NOT manually remove DOM nodes,
+    // Vue will handle removing the parent element and all its children.
+    try { graphInstance.pauseAnimation() } catch { /* ignore */ }
+    try { graphInstance.controls()?.dispose() } catch { /* ignore */ }
+    try { graphInstance.renderer()?.dispose() } catch { /* ignore */ }
     try { graphInstance._destructor?.() } catch { /* ignore */ }
     graphInstance = null
   }
@@ -279,6 +280,13 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* Dedicated container for ForceGraph3D — Vue treats this as an opaque leaf node */
+.graph-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
 /* Dot-grid overlay — positioned ABOVE the 3D canvas */
 .graph-dot-grid {
   position: absolute;
@@ -286,10 +294,8 @@ onUnmounted(() => {
   background-image: radial-gradient(circle, rgba(0,0,0,0.09) 1px, transparent 1px);
   background-size: 22px 22px;
   pointer-events: none;
-  z-index: 2;
+  z-index: 1;
 }
-
-.graph-container { width: 100%; height: 100%; position: relative; z-index: 1; }
 
 /* Empty state */
 .graph-empty {

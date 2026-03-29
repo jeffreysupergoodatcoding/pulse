@@ -55,14 +55,14 @@
       <!-- Ontology topics -->
       <div class="gv-panel gv-panel-flex">
         <div class="gv-panel-label">Key Topics</div>
-        <div v-if="ontology.topics?.length" class="gv-topics">
+        <div v-if="ontology.entity_types?.length || ontology.relation_types?.length" class="gv-topics">
           <span
-            v-for="topic in ontology.topics.slice(0, 20)"
+            v-for="topic in [...(ontology.entity_types || []), ...(ontology.relation_types || [])].slice(0, 20)"
             :key="topic"
             class="gv-topic-chip"
           >#{{ topic }}</span>
         </div>
-        <div v-else class="gv-empty-text">Topics appear after graph is built.</div>
+        <div v-else class="gv-empty-text">Entity types &amp; relations appear after graph is built.</div>
       </div>
 
     </div>
@@ -105,7 +105,7 @@ async function search() {
   searched.value = false
   try {
     const r = await graphApi.search(entityId, { query: query.value, k: 8 })
-    results.value = r.data.results || r.data || []
+    results.value = r.data.episodes || r.data.results || []
     searched.value = true
   } finally {
     searching.value = false

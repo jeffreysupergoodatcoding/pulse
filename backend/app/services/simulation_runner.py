@@ -75,8 +75,23 @@ class SimulationRunner:
         proc = self._procs.get(sim_id)
         if not proc:
             return False
-        proc.terminate()
+        try:
+            proc.terminate()
+        except OSError:
+            pass  # already dead
         logger.info(f"Terminated simulation {sim_id}")
+
+        # Update state file so frontend sees "stopped" not "running"
+        import json
+        from datetime import datetime, timezone
+        state_path = Path(self.config.SIMULATIONS_DIR) / sim_id / "run_state.json"
+        try:
+            state = json.loads(state_path.read_text()) if state_path.exists() else {}
+            state["status"] = "stopped"
+            state["completed_at"] = datetime.now(timezone.utc).isoformat()
+            state_path.write_text(json.dumps(state, indent=2))
+        except Exception:
+            pass
         return True
 
     def is_running(self, sim_id: str) -> bool:

@@ -199,6 +199,11 @@
 
         <div class="ctrl-spacer" />
 
+        <!-- Error message -->
+        <span v-if="status.status === 'error'" class="sim-error-msg">
+          Error: {{ status.error_message || 'Simulation failed' }}
+        </span>
+
         <!-- Inject event (while running) -->
         <template v-if="status.status === 'running'">
           <input
@@ -216,10 +221,10 @@
         <button
           v-if="status.status !== 'running'"
           class="btn btn-primary btn-sm"
-          :disabled="starting || status.status === 'completed'"
+          :disabled="starting || ['completed'].includes(status.status)"
           @click="startSim"
         >
-          {{ starting ? 'Starting…' : status.status === 'completed' ? 'Completed' : '▶ Start' }}
+          {{ starting ? 'Starting…' : status.status === 'completed' ? 'Completed' : status.status === 'error' ? '↺ Retry' : '▶ Start' }}
         </button>
         <button v-else class="btn btn-danger btn-sm" @click="stopSim">■ Stop</button>
 
@@ -237,7 +242,7 @@
         >View Report →</router-link>
 
         <button
-          v-if="status.status === 'completed' || status.status === 'stopped'"
+          v-if="['completed', 'stopped', 'error'].includes(status.status)"
           class="btn btn-secondary btn-sm"
           @click="newSimulation"
         >+ New Simulation</button>
@@ -463,14 +468,23 @@ async function startSim() {
     await simApi.start(simId.value, {
       hypothetical_event: config.value.hypothetical_event || undefined,
     })
+    status.value = { ...status.value, status: 'running' }
     startPolling()
+  } catch (e) {
+    alert(e.response?.data?.error || e.message)
   } finally {
     starting.value = false
   }
 }
 
 async function stopSim() {
-  await simApi.stop(simId.value)
+  try {
+    await simApi.stop(simId.value)
+    clearInterval(pollTimer)
+    status.value = { ...status.value, status: 'stopped' }
+  } catch (e) {
+    alert(e.response?.data?.error || e.message)
+  }
 }
 
 async function inject() {
@@ -497,30 +511,55 @@ function pollReport() {
   }, 2000)
 }
 
+async function pollOnce() {
+  if (!simId.value) return
+  try {
+    const [sR, aR] = await Promise.all([
+      simApi.getStatus(simId.value),
+      simApi.getActions(simId.value, { limit: 200 }),
+    ])
+
+    // Detect zombie: backend says running but subprocess is dead
+    const isZombie = sR.data.status === 'running' && sR.data.subprocess_running === false && !sR.data.completed_at
+    if (isZombie) {
+      status.value = { ...sR.data, status: 'error', error_message: 'Simulation process died unexpectedly. Start a new simulation.' }
+      clearInterval(pollTimer)
+      return
+    }
+
+    // Don't downgrade optimistic 'running' to 'idle' while subprocess is still booting
+    if (status.value.status === 'running' && sR.data.status === 'idle') {
+      sR.data.status = 'running'
+    }
+    status.value = sR.data
+    actions.value = (aR.data.actions || aR.data || []).slice(-100)
+
+    if (sR.data.status === 'completed' || sR.data.actions_count > 0) {
+      const [sentR, predR] = await Promise.allSettled([
+        simApi.getSentiment(simId.value),
+        simApi.getPrediction(simId.value),
+      ])
+      if (sentR.status === 'fulfilled') sentimentData.value = sentR.value.data
+      if (predR.status === 'fulfilled') prediction.value = predR.value.data
+    }
+
+    if (sR.data.status === 'completed') clearInterval(pollTimer)
+  } catch (e) {
+    // If the simulation no longer exists on the backend, clear stale state
+    if (e.response?.status === 404) {
+      clearInterval(pollTimer)
+      localStorage.removeItem(`sim_${entityId}`)
+      simId.value = ''
+      status.value = {}
+    }
+    // All other errors: silently ignore (transient network issues)
+  }
+}
+
 function startPolling() {
   clearInterval(pollTimer)
-  pollTimer = setInterval(async () => {
-    if (!simId.value) return
-    try {
-      const [sR, aR] = await Promise.all([
-        simApi.getStatus(simId.value),
-        simApi.getActions(simId.value, { limit: 200 }),
-      ])
-      status.value = sR.data
-      actions.value = (aR.data.actions || aR.data || []).slice(-100)
-
-      if (sR.data.status === 'completed' || sR.data.actions_count > 0) {
-        const [sentR, predR] = await Promise.allSettled([
-          simApi.getSentiment(simId.value),
-          simApi.getPrediction(simId.value),
-        ])
-        if (sentR.status === 'fulfilled') sentimentData.value = sentR.value.data
-        if (predR.status === 'fulfilled') prediction.value = predR.value.data
-      }
-
-      if (sR.data.status === 'completed') clearInterval(pollTimer)
-    } catch { /* ignore */ }
-  }, 2000)
+  pollOnce() // fire immediately, don't wait 2s
+  pollTimer = setInterval(pollOnce, 2000)
 }
 
 function newSimulation() {
@@ -583,7 +622,7 @@ onUnmounted(() => clearInterval(pollTimer))
 /* Dot grid on wizard background */
 .sim-wizard::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   background-image: radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px);
@@ -936,6 +975,15 @@ onUnmounted(() => clearInterval(pollTimer))
   overflow: hidden;
   flex-shrink: 0;
 }
+.sim-error-msg {
+  font-size: 12px;
+  color: #f87171;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
 .ctrl-progress-bar {
   height: 100%;
   background: var(--text-primary);
@@ -969,17 +1017,7 @@ onUnmounted(() => clearInterval(pollTimer))
   position: relative;
 }
 
-/* Dot grid on the agent network pane */
-.sim-pane-left::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px);
-  background-size: 22px 22px;
-  z-index: 0;
-}
-.sim-pane-left > * { position: relative; z-index: 1; }
+/* AgentNetworkGraph handles its own dot-grid internally */
 
 .sim-graph-wrap {
   flex: 1;

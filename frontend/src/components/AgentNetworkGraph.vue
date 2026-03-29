@@ -1,16 +1,17 @@
 <template>
   <div class="ang-wrap" ref="wrapRef">
-    <!-- Dot-grid sits above the ForceGraph3D canvas -->
+    <!-- ForceGraph3D mounts into this dedicated div — Vue does NOT manage its children -->
+    <div class="ang-graph-container" ref="graphContainerRef"></div>
+
+    <!-- Vue-managed overlays (all absolutely positioned, won't conflict with ForceGraph3D) -->
     <div class="ang-dot-grid" />
 
-    <!-- Toolbar -->
     <div class="ang-toolbar">
       <button class="ang-btn" @click="resetView" title="Re-center">⌖</button>
       <button class="ang-btn" :class="{ active: autoRotate }" @click="toggleRotate" title="Auto-rotate">↻</button>
       <button class="ang-btn" @click="fitView" title="Fit to screen">⤢</button>
     </div>
 
-    <!-- Node click popup -->
     <div class="ang-popup" :class="{ visible: !!selected }">
       <button class="ang-popup-close" @click="selected = null" aria-label="Close">×</button>
       <div v-if="selected">
@@ -28,7 +29,6 @@
       </div>
     </div>
 
-    <!-- Legend -->
     <div class="ang-legend">
       <div v-for="(color, label) in legendItems" :key="label" class="ang-leg-item">
         <span class="ang-leg-dot" :style="{ background: color }" />
@@ -36,7 +36,6 @@
       </div>
     </div>
 
-    <!-- Empty state -->
     <div v-if="nodeCount === 0" class="ang-empty">
       Agent network will appear here once the simulation starts
     </div>
@@ -53,7 +52,8 @@ const props = defineProps({
   running: { type: Boolean, default: false },
 })
 
-const wrapRef    = ref(null)
+const wrapRef           = ref(null)
+const graphContainerRef = ref(null)
 const selected   = ref(null)
 const nodeCount  = ref(0)
 const autoRotate = ref(false)
@@ -167,13 +167,13 @@ function pushToGraph() {
 }
 
 function initGraph(w, h) {
-  if (graphInstance || !wrapRef.value) return
+  if (graphInstance || !graphContainerRef.value) return
   initialized = true
 
-  graphInstance = ForceGraph3D({ controlType: 'orbit' })(wrapRef.value)
+  graphInstance = ForceGraph3D({ controlType: 'orbit' })(graphContainerRef.value)
     .width(w)
     .height(h)
-    .backgroundColor('rgba(0,0,0,0)')   // transparent so dot-grid shows
+    .backgroundColor('rgba(0,0,0,0)')
     .showNavInfo(false)
     .nodeColor(d => nodeColor(d))
     .nodeVal(d => nodeVal(d))
@@ -233,10 +233,8 @@ function toggleRotate() {
 }
 
 onMounted(() => {
-  if (!wrapRef.value) return
+  if (!graphContainerRef.value) return
 
-  // Use ResizeObserver to init only when the container actually has dimensions.
-  // The flex pane may not have a computed height on the first tick.
   resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       const { width, height } = entry.contentRect
@@ -253,13 +251,18 @@ onMounted(() => {
       }
     }
   })
-  resizeObserver.observe(wrapRef.value)
+  resizeObserver.observe(graphContainerRef.value)
 })
 
 onUnmounted(() => {
   clearInterval(rotateHandle)
   resizeObserver?.disconnect()
   if (graphInstance) {
+    // Stop animation and dispose resources — do NOT manually remove DOM nodes,
+    // Vue will handle removing the parent element and all its children.
+    try { graphInstance.pauseAnimation() } catch { /* ignore */ }
+    try { graphInstance.controls()?.dispose() } catch { /* ignore */ }
+    try { graphInstance.renderer()?.dispose() } catch { /* ignore */ }
     try { graphInstance._destructor?.() } catch { /* ignore */ }
     graphInstance = null
   }
@@ -278,14 +281,21 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* Dot-grid at z-index 2 — sits ABOVE the ForceGraph3D canvas (z-index 1) */
+/* Dedicated container for ForceGraph3D — Vue treats this as an opaque leaf node */
+.ang-graph-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Dot-grid — sits ABOVE the 3D canvas using z-index */
 .ang-dot-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0,0,0,0.09) 1px, transparent 1px);
   background-size: 22px 22px;
   pointer-events: none;
-  z-index: 2;
+  z-index: 1;
 }
 
 /* Toolbar */
@@ -370,6 +380,6 @@ onUnmounted(() => {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-faint); font-size: 13px;
-  pointer-events: none; z-index: 5;
+  pointer-events: none; z-index: 15;
 }
 </style>

@@ -575,16 +575,32 @@ def main():
     print(f"[sim] Starting simulation {args.simulation_id}: "
           f"{len(profiles)} agents, {config.get('rounds', 10)} rounds", flush=True)
 
-    asyncio.run(run_simulation(
-        simulation_id=args.simulation_id,
-        profiles=profiles,
-        config=config,
-        output_dir=output_dir,
-        entity_id=args.entity_id,
-        hypothetical_event=args.hypothetical_event,
-        model=model,
-        llm_client=llm_client,
-    ))
+    try:
+        asyncio.run(run_simulation(
+            simulation_id=args.simulation_id,
+            profiles=profiles,
+            config=config,
+            output_dir=output_dir,
+            entity_id=args.entity_id,
+            hypothetical_event=args.hypothetical_event,
+            model=model,
+            llm_client=llm_client,
+        ))
+    except Exception as exc:
+        import traceback
+        print(f"[sim] FATAL ERROR: {exc}", flush=True)
+        traceback.print_exc()
+        _write_state(output_dir / "run_state.json", {
+            "simulation_id": args.simulation_id,
+            "status": "error",
+            "current_round": 0,
+            "total_rounds": config.get("rounds", 10),
+            "actions_count": 0,
+            "error_message": str(exc),
+            "started_at": None,
+            "completed_at": None,
+        })
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -64,9 +64,7 @@
 
       <!-- Content -->
       <main class="content-area" :class="{ 'full-bleed': isFullBleed, 'no-dot-grid': noDotGrid }">
-        <ErrorBoundary>
-          <router-view />
-        </ErrorBoundary>
+        <router-view />
       </main>
     </div>
   </div>
@@ -76,7 +74,6 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import EntitySidebar from './components/EntitySidebar.vue'
-import ErrorBoundary from './components/ErrorBoundary.vue'
 
 const route = useRoute()
 const sidebarCollapsed = ref(false)
@@ -272,11 +269,10 @@ const entityName = computed(() => {
   background: var(--bg-canvas);
   position: relative;
 }
-
 /* Dot grid overlay on canvas */
 .content-area::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
@@ -288,7 +284,10 @@ const entityName = computed(() => {
 .content-area.full-bleed {
   padding: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
+.content-area.full-bleed > * { flex: 1; min-height: 0; }
 .content-area.full-bleed::before { display: none; }
 .content-area.no-dot-grid::before { display: none; }
 
@@ -441,6 +440,7 @@ label {
 .status-error     { background: var(--negative-bg); color: var(--negative); }
 .status-completed { background: var(--accent-muted); color: var(--text-primary); }
 .status-paused    { background: var(--warning-bg); color: var(--warning); }
+.status-stopped   { background: var(--neutral-bg);  color: var(--neutral-text); }
 
 /* Pane header */
 .pane-header {

@@ -48,6 +48,9 @@ def start(sim_id: str):
     if not state:
         return jsonify({"error": "simulation not found"}), 404
 
+    if simulation_runner.is_running(sim_id):
+        return jsonify({"ok": True, "simulation_id": sim_id, "already_running": True})
+
     entity_id = state.get("entity_id", "")
     ok = simulation_runner.start(sim_id, entity_id, hypothetical_event)
     if not ok:
