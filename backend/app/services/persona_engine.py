@@ -255,6 +255,7 @@ class PersonaEngine:
         community_name: str,
         n_agents_per_archetype: int = 12,
         graph_ctx: dict | None = None,
+        task=None,
     ) -> list[OasisAgentProfile]:
         """
         For each archetype, call LLM to generate n_agents_per_archetype profiles.
@@ -262,11 +263,18 @@ class PersonaEngine:
         """
         all_profiles: list[OasisAgentProfile] = []
         graph_ctx = graph_ctx or {}
+        total = len(archetypes)
 
-        for archetype in archetypes:
+        for idx, archetype in enumerate(archetypes):
             logger.info(
-                f"Generating {n_agents_per_archetype} profiles for {archetype['id']}"
+                f"Generating {n_agents_per_archetype} profiles for {archetype['id']} ({idx+1}/{total})"
             )
+            # Update progress: 50-85% spread across archetypes
+            if task:
+                from app.utils.task_manager import task_manager
+                pct = 50 + int(35 * idx / max(total, 1))
+                task_manager.update(task.task_id, progress=pct)
+
             raw_profiles = self._generate_archetype_profiles(
                 archetype=archetype,
                 entity_name=entity_name,
@@ -326,13 +334,18 @@ class PersonaEngine:
         _progress(10)
         corpus = self.collect_community_corpus(entity_id)
 
+        # Auto-scale clusters: need at least 5 posts per cluster for meaningful archetypes
+        effective_clusters = min(n_clusters, max(2, len(corpus) // 5))
+        if effective_clusters != n_clusters:
+            logger.info(f"Auto-scaled clusters from {n_clusters} to {effective_clusters} (corpus has {len(corpus)} posts)")
+
         _progress(25)
-        archetypes = self.cluster_archetypes(corpus, n_clusters)
+        archetypes = self.cluster_archetypes(corpus, effective_clusters)
 
         _progress(50)
         profiles = self.generate_profiles(
             archetypes, entity_id, entity_name, community_name,
-            n_agents_per_archetype, graph_ctx=graph_ctx,
+            n_agents_per_archetype, graph_ctx=graph_ctx, task=task,
         )
 
         _progress(90)

@@ -15,9 +15,12 @@
       </div>
     </div>
 
-    <!-- Slim progress bar -->
+    <!-- Progress bar with percentage -->
     <div v-if="taskId" class="persona-progress-wrap">
       <div class="persona-progress-bar" :style="{ width: (progress || 5) + '%' }" />
+    </div>
+    <div v-if="generating" class="persona-progress-label">
+      {{ progress }}% — {{ progress < 25 ? 'Loading graph context…' : progress < 50 ? 'Clustering archetypes…' : progress < 85 ? 'Generating profiles via LLM…' : 'Finalizing…' }}
     </div>
 
     <div v-if="archetypes.length" class="grid-3">
@@ -119,5 +122,11 @@ onMounted(() => { loadSets() })
   height: 100%;
   background: var(--accent);
   transition: width 0.4s;
+}
+.persona-progress-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0 8px;
+  text-align: center;
 }
 </style>

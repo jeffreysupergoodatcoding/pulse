@@ -219,14 +219,23 @@
 
         <!-- Start / Stop -->
         <button
-          v-if="status.status !== 'running'"
+          v-if="!['running', 'completed', 'stopped'].includes(status.status)"
           class="btn btn-primary btn-sm"
-          :disabled="starting || ['completed'].includes(status.status)"
+          :disabled="starting"
           @click="startSim"
         >
-          {{ starting ? 'Starting…' : status.status === 'completed' ? 'Completed' : status.status === 'error' ? '↺ Retry' : '▶ Start' }}
+          {{ starting ? 'Starting…' : status.status === 'error' ? '↺ Retry' : '▶ Start' }}
         </button>
-        <button v-else class="btn btn-danger btn-sm" @click="stopSim">■ Stop</button>
+        <button v-else-if="status.status === 'running'" class="btn btn-danger btn-sm" @click="stopSim">■ Stop</button>
+
+        <!-- Completed: save & return to wizard -->
+        <button
+          v-if="['completed', 'stopped'].includes(status.status)"
+          class="btn btn-primary btn-sm"
+          @click="newSimulation"
+        >
+          ✓ Completed — New Simulation
+        </button>
 
         <button
           v-if="status.status === 'completed'"
@@ -241,12 +250,6 @@
           class="btn btn-primary btn-sm"
           @click="showReportModal = true"
         >View Report</button>
-
-        <button
-          v-if="['completed', 'stopped', 'error'].includes(status.status)"
-          class="btn btn-secondary btn-sm"
-          @click="newSimulation"
-        >+ New Simulation</button>
       </div>
 
       <!-- Split pane body -->

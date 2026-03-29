@@ -24,7 +24,6 @@
           <div class="action-meta">
             <span class="action-badge" :class="`at-${action.action_type}`">{{ action.action_type?.replace(/_/g, ' ') }}</span>
             <span class="action-round">R{{ action.round }}</span>
-            <span class="action-platform" v-if="action.platform">{{ action.platform }}</span>
           </div>
         </div>
       </div>
@@ -57,8 +56,6 @@ function sentimentLabel(score) {
 
 function agentType(action) {
   if (action.archetype_id) return action.archetype_id.toUpperCase().slice(0, 16)
-  if (action.platform === 'twitter') return 'TWITTERUSER'
-  if (action.platform === 'reddit') return 'REDDITUSER'
   return 'AGENT'
 }
 
