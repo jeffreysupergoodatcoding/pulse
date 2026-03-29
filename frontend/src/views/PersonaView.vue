@@ -1,8 +1,14 @@
 <template>
   <div>
-    <div class="flex" style="align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div class="section-title" style="margin-bottom:0">Persona Archetypes — {{ entityId }}</div>
-      <div class="flex gap-2">
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">
+          Persona Archetypes
+          <span v-if="archetypes.length" class="persona-count">{{ archetypes.length }}</span>
+        </h1>
+        <p class="view-subtitle">AI-generated community profiles from ingested content</p>
+      </div>
+      <div class="flex gap-2" style="align-items:center">
         <select v-model="selectedTemplate" style="width:180px">
           <option value="">— From template —</option>
           <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option>
@@ -16,11 +22,9 @@
       </div>
     </div>
 
-    <div v-if="taskId" class="card mb-4" style="max-width:400px;margin-bottom:16px">
-      <div class="text-muted" style="font-size:12px">Task: {{ taskId }} — {{ taskStatus }}</div>
-      <div class="progress-bar mt-2">
-        <div class="progress-fill" :style="{ width: (progress || 5) + '%' }" />
-      </div>
+    <!-- Slim progress bar -->
+    <div v-if="taskId" class="persona-progress-wrap">
+      <div class="persona-progress-bar" :style="{ width: (progress || 5) + '%' }" />
     </div>
 
     <div v-if="archetypes.length" class="grid-3">
@@ -111,6 +115,29 @@ onMounted(() => { loadSets(); loadTemplates() })
 </script>
 
 <style scoped>
-.progress-bar { height: 4px; background: var(--bg-overlay); border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent); transition: width .4s; }
+.persona-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  padding: 0 8px;
+  height: 20px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.persona-progress-wrap {
+  height: 3px;
+  background: var(--bg-overlay);
+  margin: -24px -24px 16px;
+  overflow: hidden;
+}
+.persona-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s;
+}
 </style>

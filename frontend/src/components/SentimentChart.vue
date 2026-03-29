@@ -76,11 +76,11 @@ function buildChart() {
         },
       },
       scales: {
-        x: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: '#F1F3F7' } },
+        x: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: '#E2E6EF' } },
         y: {
           min: -1, max: 1,
           ticks: { color: '#6B7280', font: { size: 10 } },
-          grid: { color: '#F1F3F7' },
+          grid: { color: '#E2E6EF' },
         },
       },
     },
@@ -93,6 +93,6 @@ onUnmounted(() => { if (chartInstance) chartInstance.destroy() })
 </script>
 
 <style scoped>
-.chart-wrap { position: relative; height: 260px; background: var(--bg-raised); border-radius: var(--radius-md); }
+.chart-wrap { position: relative; height: 180px; background: transparent; }
 .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 13px; }
 </style>

@@ -1,15 +1,28 @@
 <template>
   <div>
-    <div class="flex" style="align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div class="section-title" style="margin-bottom:0">Interact</div>
-      <div class="flex gap-2">
-        <button class="btn btn-sm" :class="mode === 'report' ? 'btn-primary' : 'btn-secondary'" @click="mode = 'report'">
-          ReportAgent
-        </button>
-        <button class="btn btn-sm" :class="mode === 'agent' ? 'btn-primary' : 'btn-secondary'" @click="mode = 'agent'">
-          Agent Chat
-        </button>
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">Chat</h1>
+        <p class="view-subtitle">Interact with the ReportAgent or individual simulation agents</p>
       </div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="interact-tabs">
+      <button
+        class="interact-tab"
+        :class="{ active: mode === 'report' }"
+        @click="mode = 'report'"
+      >
+        ReportAgent
+      </button>
+      <button
+        class="interact-tab"
+        :class="{ active: mode === 'agent' }"
+        @click="mode = 'agent'"
+      >
+        Agent Chat
+      </button>
     </div>
 
     <!-- ReportAgent chat -->
@@ -96,4 +109,31 @@ async function sendToAgent(message, history) {
 
 <style scoped>
 .mb-4 { margin-bottom: 16px; }
+
+.interact-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  width: fit-content;
+}
+.interact-tab {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: none;
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.interact-tab:hover { color: var(--text-primary); }
+.interact-tab.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
 </style>

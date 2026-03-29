@@ -1,10 +1,13 @@
 <template>
   <div>
-    <div class="flex" style="align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div class="section-title" style="margin-bottom:0">Report — {{ reportId }}</div>
-      <div class="flex gap-2">
+    <div class="view-header">
+      <div>
+        <h1 class="view-title">Report</h1>
+        <p class="view-subtitle">AI-generated simulation analysis</p>
+      </div>
+      <div class="flex gap-2" style="align-items:center">
         <span class="badge" :class="statusBadge">{{ reportState.status || 'loading' }}</span>
-        <div v-if="reportState.status === 'running'" class="text-muted" style="font-size:12px;align-self:center">
+        <div v-if="reportState.status === 'running'" class="text-muted" style="font-size:12px">
           {{ reportState.sections_done }}/{{ reportState.total_sections }} sections
         </div>
         <router-link :to="`/entity/${entityId}/interact/${reportId}`" class="btn btn-secondary btn-sm">
@@ -13,12 +16,9 @@
       </div>
     </div>
 
-    <!-- Progress bar while generating -->
-    <div v-if="reportState.status === 'running'" class="progress-wrap card mb-4">
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: progressPct + '%' }" />
-      </div>
-      <div class="text-muted mt-2" style="font-size:12px">Generating report with ReACT agent…</div>
+    <!-- Slim progress bar while generating -->
+    <div v-if="reportState.status === 'running'" class="report-progress-wrap">
+      <div class="report-progress-bar" :style="{ width: progressPct + '%' }" />
     </div>
 
     <div v-if="markdown" class="grid-layout">
@@ -163,9 +163,12 @@ onUnmounted(() => clearInterval(pollTimer))
 .progress-fill { height: 100%; background: var(--accent); transition: width .5s; }
 
 .report-body :deep(h1) { font-size: 22px; font-weight: 700; margin: 0 0 16px; color: var(--text-primary); }
-.report-body :deep(h2) { font-size: 17px; font-weight: 600; margin: 24px 0 10px; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; }
-.report-body :deep(h3) { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: var(--text-secondary); }
-.report-body :deep(p)  { font-size: 13px; line-height: 1.7; color: var(--text-secondary); margin: 0 0 12px; }
+.report-body :deep(h2) { font-size: 17px; font-weight: 600; margin: 32px 0 10px; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; }
+.report-body :deep(h3) { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--text-secondary); }
+.report-body :deep(p)  { font-size: 13px; line-height: 1.75; color: var(--text-secondary); margin: 0 0 14px; }
+
+.report-progress-wrap { height: 3px; background: var(--bg-overlay); margin: -24px -24px 16px; overflow: hidden; }
+.report-progress-bar  { height: 100%; background: var(--accent); transition: width 0.5s; }
 .report-body :deep(ul), .report-body :deep(ol) { padding-left: 20px; color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
 .report-body :deep(li) { margin-bottom: 4px; line-height: 1.6; }
 .report-body :deep(strong) { color: var(--text-primary); }

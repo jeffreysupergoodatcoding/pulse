@@ -1,7 +1,11 @@
 <template>
   <div class="graph-wrap">
+    <!-- Dot-grid background overlay -->
+    <div class="graph-dot-grid" />
+
     <div ref="containerRef" class="graph-container" />
 
+    <!-- Empty state -->
     <div v-if="!hasData" class="graph-empty">
       <div class="empty-inner">
         <span class="empty-icon">◎</span>
@@ -9,40 +13,63 @@
       </div>
     </div>
 
-    <!-- Plane legend -->
-    <div class="graph-legend">
-      <span class="leg-item">
-        <span class="leg-dot" style="background:#6366F1" />
-        Entity / Person
-        <span class="leg-plane">Plane 1</span>
-      </span>
-      <span class="leg-item">
-        <span class="leg-dot" style="background:#0EA5E9" />
-        Topic
-        <span class="leg-plane">Plane 2</span>
-      </span>
-      <span class="leg-item">
-        <span class="leg-dot" style="background:#10B981" />
-        Source
-        <span class="leg-plane">Plane 3</span>
-      </span>
-    </div>
-
-    <!-- Controls -->
-    <div class="graph-controls">
-      <button class="ctrl-btn" @click="resetCamera" title="Reset view">⌖</button>
-      <button class="ctrl-btn" :class="{ active: autoRotate }" @click="toggleRotate" title="Auto-rotate">↻</button>
-    </div>
-
-    <!-- Stats badge -->
+    <!-- Stats chip -->
     <div v-if="hasData" class="graph-stats">
       {{ nodes.length }} nodes · {{ edges.length }} edges
+    </div>
+
+    <!-- Controls toolbar (top-right) -->
+    <div class="graph-toolbar">
+      <button class="ctrl-btn" @click="resetCamera" title="Reset view">⌖</button>
+      <button class="ctrl-btn" :class="{ active: autoRotate }" @click="toggleRotate" title="Auto-rotate">↻</button>
+      <button class="ctrl-btn" @click="fitGraph" title="Fit to screen">⤢</button>
+    </div>
+
+    <!-- Node/edge relationship popup -->
+    <div class="graph-info-panel" :class="{ visible: !!selectedNode }">
+      <button class="info-close" @click="selectedNode = null" aria-label="Close">×</button>
+      <div v-if="selectedNode">
+        <div class="info-title">Relationship</div>
+        <div class="info-path" v-if="selectedNode.fromLabel">
+          {{ selectedNode.fromLabel }} → {{ selectedNode.relation }} → {{ selectedNode.label }}
+        </div>
+        <div class="info-field-group">
+          <div class="info-field">
+            <span class="info-field-label">Label</span>
+            <span class="info-field-value">{{ selectedNode.label || selectedNode.id }}</span>
+          </div>
+          <div class="info-field">
+            <span class="info-field-label">Type</span>
+            <span class="info-field-value">{{ selectedNode.type || 'Node' }}</span>
+          </div>
+          <div class="info-field" v-if="selectedNode.id">
+            <span class="info-field-label">ID</span>
+            <span class="info-field-value mono">{{ selectedNode.id?.slice(0, 28) }}</span>
+          </div>
+          <div class="info-field">
+            <span class="info-field-label">Connections</span>
+            <span class="info-field-value">{{ connectionCount(selectedNode) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend (bottom-left pill chips) -->
+    <div class="graph-legend">
+      <span class="leg-chip" style="--c:#6366F1"><span class="leg-dot" />Entity</span>
+      <span class="leg-chip" style="--c:#0EA5E9"><span class="leg-dot" />Topic</span>
+      <span class="leg-chip" style="--c:#10B981"><span class="leg-dot" />Source</span>
+      <span class="leg-chip" style="--c:#EF4444"><span class="leg-dot" />Media</span>
+      <span class="leg-chip" style="--c:#8B5CF6"><span class="leg-dot" />Gov/Policy</span>
+      <span class="leg-chip" style="--c:#F97316"><span class="leg-dot" />Executive</span>
+      <span class="leg-chip" style="--c:#EC4899"><span class="leg-dot" />Product</span>
+      <span class="leg-chip" style="--c:#14B8A6"><span class="leg-dot" />Finance</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import ForceGraph3D from '3d-force-graph'
 import { graph as graphApi } from '../api/graph.js'
 
@@ -53,24 +80,35 @@ const nodes = ref([])
 const edges = ref([])
 const hasData = ref(false)
 const autoRotate = ref(false)
+const selectedNode = ref(null)
 
 let graphInstance = null
 let pollTimer = null
 let rotateHandle = null
+let resizeObserver = null
 
 // Z-plane depths per node type — 3 distinct visual planes
 const PLANE_Z = {
-  Brand: 0, Person: 0, Influencer: 0,
+  Brand: 0, Person: 0, Influencer: 0, Company: 0, TechExecutive: 0,
   Topic: 150,
   Unknown: 300, Source: 300, Event: 300, Community: 300, Product: 300,
+  Organization: 300, MediaOutlet: 300, GovernmentAgency: 300,
+  InvestorInstitution: 300, PolicyMaker: 300, DeveloperCommunity: 300,
 }
 
-// Node colors
+// Node colors — multi-color for rich "hairball" visualization
 const NODE_COLOR = {
-  Brand: '#6366F1', Person: '#6366F1', Influencer: '#6366F1',
+  Brand: '#6366F1', Person: '#6366F1', Influencer: '#6366F1', Company: '#6366F1',
   Topic: '#0EA5E9',
-  Unknown: '#10B981', Source: '#10B981', Event: '#10B981',
-  Community: '#10B981', Product: '#10B981',
+  Unknown: '#10B981', Source: '#10B981', Event: '#F59E0B',
+  Community: '#10B981', Product: '#EC4899',
+  Organization: '#3B82F6',
+  MediaOutlet: '#EF4444',
+  GovernmentAgency: '#8B5CF6',
+  InvestorInstitution: '#14B8A6',
+  PolicyMaker: '#8B5CF6',
+  DeveloperCommunity: '#10B981',
+  TechExecutive: '#F97316',
 }
 
 function getZ(type) { return PLANE_Z[type] ?? 300 }
@@ -81,53 +119,60 @@ function getSize(type) {
   return 3
 }
 
+function connectionCount(node) {
+  if (!node) return 0
+  return edges.value.filter(e => e.source === node.id || e.target === node.id).length
+}
+
 function initGraph() {
   if (!containerRef.value) return
+  const w = containerRef.value.clientWidth || 800
+  const h = containerRef.value.clientHeight || 600
 
   graphInstance = ForceGraph3D({ controlType: 'orbit' })(containerRef.value)
-    .backgroundColor('#FAFBFF')
+    .width(w)
+    .height(h)
+    .backgroundColor('#FFFFFF')
     .showNavInfo(false)
     // Links
-    .linkColor(() => 'rgba(180,185,210,0.45)')
-    .linkWidth(0.8)
+    .linkColor(() => 'rgba(150,158,180,0.25)')
+    .linkWidth(0.5)
     .linkDirectionalParticles(1)
-    .linkDirectionalParticleWidth(1.5)
-    .linkDirectionalParticleColor(() => 'rgba(99,102,241,0.5)')
+    .linkDirectionalParticleWidth(1.2)
+    .linkDirectionalParticleColor(() => 'rgba(99,102,241,0.45)')
     // Nodes
     .nodeColor(d => getColor(d.type))
     .nodeVal(d => getSize(d.type))
     .nodeLabel(d => `
       <div style="
-        background:#fff;border:1px solid #E8EAEF;border-radius:8px;
-        padding:6px 10px;font-size:12px;color:#111827;
-        box-shadow:0 4px 12px rgba(0,0,0,0.1);
-        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-        max-width:200px;line-height:1.4">
-        <strong>${d.label || d.id}</strong><br/>
-        <span style="color:#6B7280;font-size:10px">${d.type || 'Node'}</span>
+        background:#fff;border:1px solid #E2E6EF;border-radius:10px;
+        padding:8px 12px;font-size:12px;color:#111827;
+        box-shadow:0 4px 16px rgba(15,23,42,0.1);
+        font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+        max-width:220px;line-height:1.5">
+        <strong style="font-size:13px">${d.label || d.id}</strong><br/>
+        <span style="color:#9CA3AF;font-size:10px;text-transform:uppercase;letter-spacing:0.5px">${d.type || 'Node'}</span>
       </div>
     `)
+    .onNodeClick(node => {
+      selectedNode.value = {
+        ...node,
+        fromLabel: null,
+        relation: null,
+      }
+    })
     .onEngineStop(() => {
-      // After simulation settles, snap nodes closer to their Z plane
-      if (!graphInstance) return
-      const data = graphInstance.graphData()
-      data.nodes.forEach(n => {
-        n.z = (n.z || 0) * 0.2 + getZ(n.type) * 0.8
-      })
-      graphInstance.graphData(data)
+      // Only zoom when there is actual data — onEngineStop also fires at init with empty graph
+      if (!graphInstance || !hasData.value) return
+      graphInstance.zoomToFit(800, 80)
     })
 
-  // Custom force: spring each node toward its target Z plane each tick
-  graphInstance.d3Force('z-plane', alpha => {
-    if (!graphInstance) return
-    graphInstance.graphData().nodes.forEach(n => {
-      const targetZ = getZ(n.type)
-      n.vz = (n.vz || 0) + (targetZ - (n.z || 0)) * 0.06 * alpha
-    })
-  })
+  // Free 3D layout — no z-plane constraint so the graph orbits in true 3D space
+  graphInstance.d3Force('z-plane', null)
 
-  // Stronger repulsion so nodes spread within their planes
-  graphInstance.d3Force('charge')?.strength(-150)
+  // Denser clustering: moderate repulsion, short links
+  graphInstance.d3Force('charge')?.strength(-120)
+  graphInstance.d3Force('link')?.distance(30).strength(0.8)
 
   renderGraph()
 }
@@ -143,7 +188,6 @@ function renderGraph() {
       id: n.id,
       label: n.label || n.id,
       type: n.type || 'Unknown',
-      z: getZ(n.type || 'Unknown'), // initial z hint for the force engine
     })),
     links: edges.value.map(e => ({
       source: e.source,
@@ -165,7 +209,11 @@ async function loadData() {
 }
 
 function resetCamera() {
-  graphInstance?.cameraPosition({ x: 0, y: 0, z: 600 }, { x: 0, y: 0, z: 0 }, 1000)
+  graphInstance?.zoomToFit(600, 40)
+}
+
+function fitGraph() {
+  graphInstance?.zoomToFit(400)
 }
 
 function toggleRotate() {
@@ -190,18 +238,31 @@ watch(() => props.entityId, () => {
   nodes.value = []
   edges.value = []
   hasData.value = false
+  selectedNode.value = null
   loadData()
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // Wait for the split-pane layout to fully resolve before reading container dimensions
+  await nextTick()
   initGraph()
   loadData()
   pollTimer = setInterval(loadData, 10000)
+
+  // Keep the graph canvas sized correctly if the panel is resized
+  resizeObserver = new ResizeObserver(() => {
+    if (!containerRef.value || !graphInstance) return
+    graphInstance
+      .width(containerRef.value.clientWidth)
+      .height(containerRef.value.clientHeight)
+  })
+  if (containerRef.value) resizeObserver.observe(containerRef.value)
 })
 
 onUnmounted(() => {
   clearInterval(pollTimer)
   clearInterval(rotateHandle)
+  resizeObserver?.disconnect()
   if (graphInstance) {
     try { graphInstance._destructor?.() } catch { /* ignore */ }
     graphInstance = null
@@ -213,77 +274,173 @@ onUnmounted(() => {
 .graph-wrap {
   position: relative;
   width: 100%;
-  height: 600px;
-  background: var(--graph-bg);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  height: 100%;
+  background: #FFFFFF;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
 }
 
-.graph-container { width: 100%; height: 100%; }
+/* Dot-grid overlay — positioned ABOVE the 3D canvas */
+.graph-dot-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+  z-index: 2;
+}
 
+.graph-container { width: 100%; height: 100%; position: relative; z-index: 1; }
+
+/* Empty state */
 .graph-empty {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
+  pointer-events: none; z-index: 5;
 }
 .empty-inner {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   color: var(--text-faint); font-size: 13px; text-align: center;
-}
-.empty-icon { font-size: 36px; color: var(--border-default); }
-
-/* Glass legend bar */
-.graph-legend {
-  position: absolute; bottom: 14px; left: 14px;
-  display: flex; gap: 14px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255,255,255,0.94);
   backdrop-filter: blur(8px);
+  padding: 24px 32px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 7px 14px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-sans);
 }
-.leg-item {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 11px; color: var(--text-muted); font-weight: 500;
-}
-.leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.leg-plane {
-  font-size: 9px; color: var(--text-faint);
-  background: var(--bg-overlay); padding: 1px 4px; border-radius: 3px;
-}
-
-/* Float control buttons */
-.graph-controls {
-  position: absolute; top: 14px; right: 14px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.ctrl-btn {
-  width: 30px; height: 30px;
-  border: 1px solid var(--border-default);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius-sm);
-  cursor: pointer; font-size: 15px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-muted);
-  transition: background var(--transition-fast), color var(--transition-fast);
-  box-shadow: var(--shadow-sm);
-}
-.ctrl-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-.ctrl-btn.active { background: var(--accent-muted); color: var(--accent); border-color: var(--accent); }
+.empty-icon { font-size: 32px; color: var(--border-strong); }
 
 /* Stats chip */
 .graph-stats {
-  position: absolute; top: 14px; left: 14px;
+  position: absolute; top: 12px; left: 14px;
   font-size: 11px; color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
   box-shadow: var(--shadow-sm);
+  z-index: 5;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.1px;
+}
+
+/* Controls toolbar (top-right) */
+.graph-toolbar {
+  position: absolute; top: 12px; right: 14px;
+  display: flex; gap: 4px;
+  z-index: 5;
+}
+.ctrl-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border-default);
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-md);
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-sans);
+}
+.ctrl-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); }
+.ctrl-btn.active { background: var(--text-primary); color: #FFFFFF; border-color: var(--text-primary); }
+
+/* Node info panel */
+.graph-info-panel {
+  position: absolute;
+  top: 54px;
+  right: 14px;
+  width: 272px;
+  background: rgba(255,255,255,0.98);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-lg);
+  transform: translateX(300px);
+  opacity: 0;
+  transition: transform var(--transition-base), opacity var(--transition-base);
+  z-index: 10;
+  font-family: var(--font-sans);
+}
+.graph-info-panel.visible {
+  transform: translateX(0);
+  opacity: 1;
+}
+.info-close {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--text-faint); line-height: 1;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.info-close:hover { color: var(--text-primary); background: var(--bg-hover); }
+.info-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.info-path {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding: 6px 8px;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  word-break: break-all;
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+}
+.info-field-group { border-top: 1px solid var(--border-subtle); padding-top: 10px; }
+.info-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+.info-field:last-child { border-bottom: none; }
+.info-field-label { color: var(--text-faint); flex-shrink: 0; font-size: 11px; }
+.info-field-value { color: var(--text-primary); font-weight: 500; text-align: right; word-break: break-all; }
+.info-field-value.mono { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+
+/* Legend (bottom-left) */
+.graph-legend {
+  position: absolute; bottom: 14px; left: 14px;
+  display: flex; gap: 6px; flex-wrap: wrap;
+  z-index: 5;
+}
+.leg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-sans);
+  letter-spacing: -0.1px;
+}
+.leg-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+  flex-shrink: 0;
 }
 </style>
