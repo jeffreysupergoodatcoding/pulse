@@ -77,34 +77,3 @@ def get_set(entity_id: str, set_id: str):
         return jsonify({"error": str(exc)}), 404
 
 
-@persona_bp.get("/templates")
-def templates():
-    """GET /api/persona/templates"""
-    return jsonify(persona_engine.list_templates())
-
-
-@persona_bp.post("/from_template")
-def from_template():
-    """
-    POST /api/persona/from_template
-    Body: {entity_id, template_id}
-    Returns: {persona_set_id}
-    """
-    body = request.get_json(force=True) or {}
-    entity_id = body.get("entity_id")
-    template_id = body.get("template_id")
-
-    if not entity_id or not template_id:
-        return jsonify({"error": "entity_id and template_id are required"}), 400
-
-    entity = entity_store.get(entity_id)
-    if not entity:
-        return jsonify({"error": f"Entity {entity_id} not found"}), 404
-
-    try:
-        set_id = persona_engine.from_template(entity_id, template_id)
-        entity.active_persona_set_id = set_id
-        entity_store.update(entity)
-        return jsonify({"persona_set_id": set_id})
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 404

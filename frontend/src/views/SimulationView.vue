@@ -74,29 +74,9 @@
 
           <div class="wiz-field">
             <label>Persona source</label>
-            <div class="wiz-radio-group">
-              <label class="wiz-radio" :class="{ selected: personaSource === 'entity' }">
-                <input type="radio" v-model="personaSource" value="entity" />
-                <span class="wiz-radio-label">
-                  <strong>Entity personas</strong>
-                  <span>Use archetypes generated from this entity's ingested data</span>
-                </span>
-              </label>
-              <label class="wiz-radio" :class="{ selected: personaSource === 'template' }">
-                <input type="radio" v-model="personaSource" value="template" />
-                <span class="wiz-radio-label">
-                  <strong>Predefined template</strong>
-                  <span>Use a built-in community profile (finance bros, gen Z, etc.)</span>
-                </span>
-              </label>
+            <div class="wiz-note">
+              Agents are generated from the knowledge graph. Run <strong>Generate from Graph</strong> on the Persona page first.
             </div>
-          </div>
-
-          <div v-if="personaSource === 'template'" class="wiz-field">
-            <label>Template</label>
-            <select v-model="selectedTemplate">
-              <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option>
-            </select>
           </div>
 
           <div class="wiz-field-row">
@@ -163,7 +143,7 @@
             </div>
             <div class="wiz-summary-row">
               <span>Persona source</span>
-              <span>{{ personaSource === 'entity' ? 'Entity archetypes' : 'Template: ' + selectedTemplate }}</span>
+              <span>Knowledge graph archetypes</span>
             </div>
           </div>
 
@@ -393,7 +373,6 @@ import { useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { simulation as simApi } from '../api/simulation.js'
 import { report as reportApi } from '../api/report.js'
-import { persona as personaApi } from '../api/persona.js'
 import SimulationMonitor from '../components/SimulationMonitor.vue'
 import SentimentChart from '../components/SentimentChart.vue'
 import AgentNetworkGraph from '../components/AgentNetworkGraph.vue'
@@ -409,9 +388,6 @@ const wizardSteps = [
   { n: 2, label: 'Personas' },
   { n: 3, label: 'Config' },
 ]
-const personaSource = ref('entity')
-const selectedTemplate = ref('')
-const templates = ref([])
 const hotTopics = ref([])
 const topicInput = ref('')
 const topicInputRef = ref(null)
@@ -776,14 +752,8 @@ onMounted(async () => {
     simId.value = saved
     startPolling()
   }
-  // Load templates and history in parallel
-  await Promise.allSettled([
-    personaApi.getTemplates().then(r => {
-      templates.value = r.data.templates || r.data || []
-      if (templates.value.length) selectedTemplate.value = templates.value[0].id
-    }),
-    loadHistory(),
-  ])
+  // Load history
+  await loadHistory()
 })
 
 onUnmounted(() => {
@@ -955,6 +925,15 @@ onUnmounted(() => {
   color: var(--text-faint);
   font-size: 11px;
   display: inline;
+}
+.wiz-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  line-height: 1.5;
 }
 
 .wiz-field-row {

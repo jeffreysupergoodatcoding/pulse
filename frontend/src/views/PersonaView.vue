@@ -6,18 +6,11 @@
           Persona Archetypes
           <span v-if="archetypes.length" class="persona-count">{{ archetypes.length }}</span>
         </h1>
-        <p class="view-subtitle">AI-generated community profiles from ingested content</p>
+        <p class="view-subtitle">AI-generated community profiles from knowledge graph</p>
       </div>
       <div class="flex gap-2" style="align-items:center">
-        <select v-model="selectedTemplate" style="width:180px">
-          <option value="">— From template —</option>
-          <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" :disabled="!selectedTemplate || generating" @click="fromTemplate">
-          Use Template
-        </button>
         <button class="btn btn-primary btn-sm" :disabled="generating" @click="generate">
-          {{ generating ? 'Generating…' : '⟳ Generate' }}
+          {{ generating ? 'Generating…' : '⟳ Generate from Graph' }}
         </button>
       </div>
     </div>
@@ -31,7 +24,7 @@
       <PersonaCard v-for="a in archetypes" :key="a.archetype_id || a.id" :archetype="a" />
     </div>
     <div v-else-if="!generating" class="text-muted">
-      No personas generated yet. Click <strong>Generate</strong> to create archetypes from corpus.
+      No personas generated yet. Build the knowledge graph first, then click <strong>Generate from Graph</strong>.
     </div>
   </div>
 </template>
@@ -45,8 +38,6 @@ import PersonaCard from '../components/PersonaCard.vue'
 const route = useRoute()
 const entityId = route.params.id
 const archetypes = ref([])
-const templates = ref([])
-const selectedTemplate = ref('')
 const generating = ref(false)
 const taskId = ref('')
 const taskStatus = ref('')
@@ -68,13 +59,6 @@ async function loadSets() {
   } catch { /* ignore */ }
 }
 
-async function loadTemplates() {
-  try {
-    const r = await personaApi.getTemplates()
-    templates.value = r.data.templates || r.data || []
-  } catch { /* ignore */ }
-}
-
 async function generate() {
   generating.value = true
   taskId.value = ''
@@ -84,18 +68,6 @@ async function generate() {
     pollProgress()
   } catch (e) {
     alert(e.response?.data?.error || e.message)
-    generating.value = false
-  }
-}
-
-async function fromTemplate() {
-  generating.value = true
-  try {
-    const r = await personaApi.fromTemplate({ entity_id: entityId, template_id: selectedTemplate.value })
-    archetypes.value = r.data.archetypes || []
-  } catch (e) {
-    alert(e.response?.data?.error || e.message)
-  } finally {
     generating.value = false
   }
 }
@@ -119,7 +91,7 @@ function pollProgress() {
   }, 1500)
 }
 
-onMounted(() => { loadSets(); loadTemplates() })
+onMounted(() => { loadSets() })
 </script>
 
 <style scoped>

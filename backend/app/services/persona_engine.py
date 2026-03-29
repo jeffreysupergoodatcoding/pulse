@@ -26,6 +26,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from app.config import Config
 from app.models import OasisAgentProfile
+from app.services.graph_builder_service import graph_builder_service
 from app.utils.logger import get_logger
 
 logger = get_logger("persona_engine")
@@ -36,6 +37,13 @@ Archetype: users who {cluster_description}
 Opinion bias: {pct_pos}% positive, {pct_neg}% negative toward {entity_name}
 Average engagement: {avg_engagement} likes/upvotes
 
+=== Knowledge Graph Context ===
+Key entities in this space: {graph_entities}
+Relationships: {graph_relationships}
+Key topics: {graph_topics}
+Overall sentiment toward {entity_name}: {graph_sentiment}
+===
+
 Sample posts from this archetype:
 {sample_posts}
 
@@ -45,8 +53,8 @@ Generate {n} distinct agent profiles as a JSON array. Each profile must have:
 - name: realistic username style for this community
 - age: integer, realistic for this archetype
 - bio: 1-2 sentence description of this user type
-- persona_text: detailed behavioral description including posting style, opinion tendencies, reaction triggers, vocabulary, things they would say about {entity_name}
-- initial_opinions: object with "{entity_name}": float (-1.0 to 1.0), plus 2-3 relevant topic keys
+- persona_text: detailed behavioral description including posting style, opinion tendencies, reaction triggers, vocabulary, things they would say about {entity_name}. Reference specific entities and relationships from the knowledge graph where relevant.
+- initial_opinions: object with "{entity_name}": float (-1.0 to 1.0), plus opinions on 2-3 related entities/topics from the knowledge graph
 - mbti: inferred MBTI string e.g. "INTJ"
 - activity_level: one of "low", "medium", "high"
 - influence_tier: one of "regular", "power_user", "lurker"
@@ -99,6 +107,48 @@ class PersonaEngine:
 
         logger.info(f"Collected {len(records)} corpus posts for entity {entity_id}")
         return records[:n]
+
+    # ------------------------------------------------------------------
+    # Knowledge graph context
+    # ------------------------------------------------------------------
+
+    def _load_graph_context(self, entity_id: str) -> dict:
+        """Pull entities, relationships, topics, and sentiment from the knowledge graph."""
+        graph_data = graph_builder_service.get_local_graph_data(entity_id)
+        ontology = graph_builder_service.get_ontology(entity_id)
+        sentiment = graph_builder_service.get_sentiment(entity_id)
+
+        nodes = graph_data.get("nodes", [])
+        edges = graph_data.get("edges", [])
+
+        # Summarise entities as "Name (Type)"
+        entity_strs = [
+            f"{n.get('label', n.get('id'))} ({n.get('type', 'Unknown')})"
+            for n in nodes[:40]
+        ]
+
+        # Summarise relationships as "Source -[RELATION]-> Target"
+        rel_strs = [
+            f"{e.get('source')} -[{e.get('relation', 'RELATED_TO')}]-> {e.get('target')}"
+            for e in edges[:40]
+        ]
+
+        # Topics from ontology
+        topics = ontology.get("entity_types", []) + ontology.get("relation_types", [])
+
+        score = sentiment.get("current_score", 0.0)
+        sentiment_label = (
+            "positive" if score > 0.1
+            else "negative" if score < -0.1
+            else "neutral"
+        )
+
+        return {
+            "entities": ", ".join(entity_strs) if entity_strs else "none extracted yet",
+            "relationships": "; ".join(rel_strs) if rel_strs else "none extracted yet",
+            "topics": ", ".join(topics) if topics else "none extracted yet",
+            "sentiment": f"{sentiment_label} ({score:+.2f})",
+        }
 
     # ------------------------------------------------------------------
     # Stage 2: Archetype clustering
@@ -204,12 +254,14 @@ class PersonaEngine:
         entity_name: str,
         community_name: str,
         n_agents_per_archetype: int = 12,
+        graph_ctx: dict | None = None,
     ) -> list[OasisAgentProfile]:
         """
         For each archetype, call LLM to generate n_agents_per_archetype profiles.
         Returns full list of OasisAgentProfile objects.
         """
         all_profiles: list[OasisAgentProfile] = []
+        graph_ctx = graph_ctx or {}
 
         for archetype in archetypes:
             logger.info(
@@ -220,6 +272,7 @@ class PersonaEngine:
                 entity_name=entity_name,
                 community_name=community_name,
                 n=n_agents_per_archetype,
+                graph_ctx=graph_ctx,
             )
             for raw in raw_profiles:
                 try:
@@ -257,7 +310,7 @@ class PersonaEngine:
         task=None,
     ) -> str:
         """
-        Full pipeline: corpus → cluster → profiles → persist.
+        Full pipeline: graph context + corpus → cluster → profiles → persist.
         Returns the persona_set_id.
         """
 
@@ -267,67 +320,25 @@ class PersonaEngine:
                 task_manager.update(task.task_id, progress=pct)
 
         _progress(5)
+        graph_ctx = self._load_graph_context(entity_id)
+        logger.info(f"Loaded graph context: {len(graph_ctx['entities'].split(','))} entities")
+
+        _progress(10)
         corpus = self.collect_community_corpus(entity_id)
 
-        _progress(20)
+        _progress(25)
         archetypes = self.cluster_archetypes(corpus, n_clusters)
 
         _progress(50)
         profiles = self.generate_profiles(
-            archetypes, entity_id, entity_name, community_name, n_agents_per_archetype
+            archetypes, entity_id, entity_name, community_name,
+            n_agents_per_archetype, graph_ctx=graph_ctx,
         )
 
         _progress(90)
         set_id = self._persist(entity_id, archetypes, profiles, corpus)
         _progress(100)
         return set_id
-
-    # ------------------------------------------------------------------
-    # Template-based generation (no corpus needed)
-    # ------------------------------------------------------------------
-
-    def from_template(self, entity_id: str, template_id: str) -> str:
-        """
-        Load a built-in template and adapt it for the given entity.
-        Returns persona_set_id.
-        """
-        template_path = (
-            Path(self.config.BASE_DIR) / "data" / "templates" / f"{template_id}.json"
-        )
-        if not template_path.exists():
-            raise ValueError(f"Template {template_id} not found")
-
-        data = json.loads(template_path.read_text())
-        profiles_data: list[dict] = data.get("profiles", [])
-        profiles = []
-        for raw in profiles_data:
-            raw["user_id"] = str(uuid.uuid4())
-            try:
-                profiles.append(OasisAgentProfile.model_validate(raw))
-            except Exception as exc:
-                logger.warning(f"Template profile parse error: {exc}")
-
-        archetypes = data.get("archetypes", [])
-        set_id = self._persist(entity_id, archetypes, profiles, [])
-        logger.info(f"Created persona set {set_id} from template {template_id}")
-        return set_id
-
-    def list_templates(self) -> list[dict]:
-        templates_dir = Path(self.config.BASE_DIR) / "data" / "templates"
-        templates_dir.mkdir(parents=True, exist_ok=True)
-        result = []
-        for f in templates_dir.glob("*.json"):
-            try:
-                data = json.loads(f.read_text())
-                result.append({
-                    "id": f.stem,
-                    "name": data.get("name", f.stem),
-                    "description": data.get("description", ""),
-                    "n_profiles": len(data.get("profiles", [])),
-                })
-            except Exception:
-                pass
-        return result
 
     def list_persona_sets(self, entity_id: str) -> list[dict]:
         personas_dir = (
@@ -385,7 +396,9 @@ class PersonaEngine:
         entity_name: str,
         community_name: str,
         n: int,
+        graph_ctx: dict | None = None,
     ) -> list[dict]:
+        graph_ctx = graph_ctx or {}
         sample_posts = "\n".join(
             f"- {p[:200]}" for p in archetype["representative_posts"][:10]
         )
@@ -399,6 +412,10 @@ class PersonaEngine:
             sample_posts=sample_posts,
             top_terms=", ".join(archetype["top_terms"][:15]),
             n=n,
+            graph_entities=graph_ctx.get("entities", "none"),
+            graph_relationships=graph_ctx.get("relationships", "none"),
+            graph_topics=graph_ctx.get("topics", "none"),
+            graph_sentiment=graph_ctx.get("sentiment", "unknown"),
         )
         try:
             resp = self.llm.chat.completions.create(
