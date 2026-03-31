@@ -104,13 +104,55 @@ class OntologyGenerator:
                 temperature=0.1,
             )
             raw = response.choices[0].message.content or "{}"
-            return json.loads(raw)
+            parsed = json.loads(raw)
+            return _normalize_result(parsed)
         except json.JSONDecodeError as exc:
             logger.error(f"OntologyGenerator JSON parse error: {exc}")
             return {"entities": [], "relationships": [], "key_topics": [], "sentiment_score": 0.0}
         except Exception as exc:
             logger.error(f"OntologyGenerator LLM error: {exc}")
             return {"entities": [], "relationships": [], "key_topics": [], "sentiment_score": 0.0}
+
+
+def _normalize_result(parsed: Any) -> dict[str, Any]:
+    """Normalize varying LLM response shapes into the expected format."""
+    # Handle array wrapper (some models return [{ ... }])
+    if isinstance(parsed, list):
+        parsed = parsed[0] if parsed else {}
+
+    # Normalize entities: accept "entity" or "name" as the name key
+    entities = []
+    for e in parsed.get("entities", []):
+        name = e.get("name") or e.get("entity") or ""
+        if name:
+            entities.append({
+                "name": name,
+                "type": e.get("type", "Unknown"),
+                "properties": e.get("properties", {}),
+            })
+
+    # Normalize relationships: accept entity1/entity2 or source/target
+    relationships = []
+    for r in parsed.get("relationships", []):
+        src = r.get("source") or r.get("entity1") or ""
+        tgt = r.get("target") or r.get("entity2") or ""
+        rel = r.get("relation", "RELATED_TO")
+        if src and tgt:
+            relationships.append({"source": src, "target": tgt, "relation": rel})
+
+    score = parsed.get("sentiment_score")
+    if isinstance(score, (int, float)):
+        score = float(score)
+    else:
+        score = 0.0
+
+    return {
+        "entities": entities,
+        "relationships": relationships,
+        "key_topics": parsed.get("key_topics", []),
+        "sentiment_score": score,
+        "sentiment": parsed.get("sentiment", "neutral"),
+    }
 
 
 def _dedupe_entities(entities: list[dict]) -> list[dict]:

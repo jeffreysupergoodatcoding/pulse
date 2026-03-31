@@ -158,8 +158,17 @@
         <div>
           <div class="build-graph-title">Build Knowledge Graph</div>
           <div class="build-graph-sub">Run GraphRAG on ingested posts to populate the knowledge graph</div>
-          <div v-if="buildResult" class="build-graph-result">
+          <div v-if="buildStatus.status === 'running'" class="build-graph-progress-info">
+            <div class="build-progress-wrap">
+              <div class="build-progress-bar" :style="{ width: (buildStatus.progress || 5) + '%' }" />
+            </div>
+            <span class="build-progress-label">{{ buildProgressLabel }}</span>
+          </div>
+          <div v-if="buildStatus.status === 'completed' && buildResult" class="build-graph-result">
             {{ buildResult.nodes_added }} nodes · {{ buildResult.edges_added }} edges · {{ buildResult.episodes_added }} episodes
+          </div>
+          <div v-if="buildStatus.status === 'error'" class="build-graph-error">
+            Build failed: {{ buildStatus.error || 'unknown error' }}
           </div>
         </div>
       </div>
@@ -203,11 +212,23 @@ const taskStatus = ref({})
 const preview = ref([])
 const building = ref(false)
 const buildResult = ref(null)
+const buildTaskId = ref('')
+const buildStatus = ref({})
 let pollTimer = null
+let buildPollTimer = null
 
 const hasAnySources = computed(() =>
   Object.entries(enabled.value).some(([p, on]) => on && sources.value[p]?.trim())
 )
+
+const buildProgressLabel = computed(() => {
+  const p = buildStatus.value.progress || 0
+  if (p <= 10) return 'Reading ingested posts…'
+  if (p <= 49) return 'Extracting ontology via LLM…'
+  if (p <= 79) return 'Writing episodes to Zep…'
+  if (p <= 99) return 'Storing nodes & edges…'
+  return 'Done'
+})
 
 function buildSourcesPayload() {
   const result = []
@@ -296,14 +317,40 @@ async function loadPreview() {
 async function buildGraph() {
   building.value = true
   buildResult.value = null
+  buildStatus.value = { status: 'running', progress: 5 }
   try {
     const r = await graphApi.build({ entity_id: entityId })
-    buildResult.value = r.data
+    buildTaskId.value = r.data.task_id
+    pollBuildTask()
   } catch (e) {
-    alert(e.response?.data?.error || e.message)
-  } finally {
     building.value = false
+    buildStatus.value = { status: 'error', error: e.response?.data?.error || e.message }
   }
+}
+
+function pollBuildTask() {
+  clearInterval(buildPollTimer)
+  buildPollTimer = setInterval(async () => {
+    if (!buildTaskId.value) return
+    try {
+      const r = await graphApi.getBuildStatus(buildTaskId.value)
+      buildStatus.value = r.data
+      if (r.data.status === 'completed') {
+        clearInterval(buildPollTimer)
+        building.value = false
+        buildResult.value = {
+          nodes_added: r.data.nodes_added || 0,
+          edges_added: r.data.edges_added || 0,
+          episodes_added: r.data.episodes_added || 0,
+        }
+      } else if (r.data.status === 'error') {
+        clearInterval(buildPollTimer)
+        building.value = false
+      }
+    } catch {
+      /* keep polling */
+    }
+  }, 2000)
 }
 
 function truncate(s, n) { return s?.length > n ? s.slice(0, n) + '…' : s }
@@ -604,10 +651,36 @@ onMounted(async () => {
   color: var(--text-muted);
   line-height: 1.5;
 }
+.build-graph-progress-info {
+  margin-top: 10px;
+}
+.build-progress-wrap {
+  height: 3px;
+  background: var(--bg-overlay);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.build-progress-bar {
+  height: 100%;
+  background: var(--text-primary);
+  transition: width 0.4s ease;
+}
+.build-progress-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
 .build-graph-result {
   font-size: 12px;
   color: var(--positive);
   margin-top: 6px;
   font-weight: 600;
+}
+.build-graph-error {
+  font-size: 12px;
+  color: var(--negative);
+  margin-top: 6px;
+  font-weight: 500;
 }
 </style>
