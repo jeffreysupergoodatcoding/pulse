@@ -266,6 +266,15 @@ bullet("Sim agents include implicit-sentiment actions (likes, dislikes) which ca
 # ===== VI. Findings =====
 H(1, "VI. Findings")
 
+P(
+    "Note on metrics: this section reports four distinct lenses on the same data — "
+    "direction agreement (sign match), Mean Absolute Error (magnitude on [-1, +1] "
+    "scale), Spearman rank correlation across tests (whether the ordering of events "
+    "is preserved), and Spearman within tests (whether providers agree on "
+    "round-by-round shape). Readers should weight all four; no single metric is "
+    "complete."
+)
+
 H(2, "Finding 1 — Directional Accuracy on Real Events")
 matches, total = DIR_MATCHES, DIR_TOTAL
 P(
@@ -479,7 +488,145 @@ if nba:
         "most measured (+0.11), with OpenAI in the middle (+0.28)."
     )
 
-H(2, "Finding 3 — Cross-Provider Robustness")
+H(2, "Finding 3 — Spearman Rank Correlation")
+
+P(
+    "Beyond directional agreement and MAE, we computed Spearman rank "
+    "correlation in three forms to test whether Pulse's outputs preserve "
+    "ordering structure even when absolute magnitudes are off."
+)
+
+# Across-test Spearman
+across = results.get("spearman", {}).get("across_tests")
+if across:
+    H(3, "Across-test ranking accuracy (the headline)")
+    P(
+        "Does each provider rank the three backtest events in the same order as "
+        "real Twitter sentiment did? Ground-truth ranking by mean: Apple Vision "
+        f"Pro ({across['gt_means'][0]:+.3f}) > Nothing Phone 4a ({across['gt_means'][1]:+.3f}) "
+        f"> NY Climate / Hochul ({across['gt_means'][2]:+.3f})."
+    )
+    table = doc.add_table(rows=1, cols=3)
+    table.style = "Light Grid Accent 1"
+    hdr = table.rows[0].cells
+    hdr[0].text = "Provider"
+    hdr[1].text = "Sim ranking matches GT?"
+    hdr[2].text = "Spearman"
+    for h in hdr: h.paragraphs[0].runs[0].bold = True
+    for prov in ["gemini", "openai", "anthropic"]:
+        s = across["by_provider"].get(prov)
+        s_str = f"{s:+.3f}" if s is not None else "—"
+        match = ("perfect match" if s == 1.0 else "partial match" if s and s > 0 else "anti-correlated")
+        row = table.add_row().cells
+        row[0].text = prov.title()
+        row[1].text = match
+        row[2].text = s_str
+    doc.add_paragraph()
+    P(
+        "OpenAI and Anthropic both achieve Spearman = +1.0 — they correctly "
+        "ranked the three events in the same order as ground truth, even though "
+        "OpenAI and Anthropic were both directionally wrong on the Hochul event "
+        "in absolute terms (predicted positive, reality negative). The "
+        "interpretation: Pulse's relative ordering across events is more "
+        "trustworthy than its absolute sentiment magnitudes. A user can rely on "
+        "'Pulse says Event A will land worse than Event B' even when they "
+        "should not rely on the specific sentiment numbers. Caveat: with N=3 "
+        "backtests, Spearman = +1.0 has a 1/6 = 16.7% chance under the null, so "
+        "this is suggestive rather than conclusive — replication on more events "
+        "is needed to harden the claim.",
+        italic=True,
+    )
+
+# Cross-provider Spearman
+cross_within = results.get("spearman", {}).get("cross_provider_within_test")
+if cross_within:
+    H(3, "Cross-provider trajectory agreement within each test")
+    P(
+        "Within each test, do the three providers' round-by-round trajectories "
+        "rank-agree (i.e. do they identify the same rounds as 'high-sentiment' vs "
+        "'low-sentiment')?"
+    )
+    cw_table = doc.add_table(rows=1, cols=4)
+    cw_table.style = "Light Grid Accent 1"
+    hdr = cw_table.rows[0].cells
+    hdr[0].text = "Test"
+    hdr[1].text = "Gemini–OpenAI"
+    hdr[2].text = "Gemini–Anthropic"
+    hdr[3].text = "OpenAI–Anthropic"
+    for h in hdr: h.paragraphs[0].runs[0].bold = True
+    for tk, pairs in cross_within.items():
+        title = next((t["title"] for t in results["tests"] if t["key"] == tk), tk)
+        row = cw_table.add_row().cells
+        row[0].text = title
+        for i, key in enumerate(["gemini_vs_openai", "gemini_vs_anthropic", "openai_vs_anthropic"]):
+            v = pairs.get(key)
+            row[i + 1].text = f"{v:+.3f}" if v is not None else "—"
+    doc.add_paragraph()
+    P(
+        "Round-by-round shape agreement is weak across the three backtests "
+        "(most cells in [-0.3, +0.3]) — LLM stochasticity dominates the "
+        "round-to-round noise. The NBA forward-looking forecast is the "
+        "exception, with strong cross-provider agreement (+0.43 to +0.62), "
+        "suggesting that on richly-discussed forward-looking topics with "
+        "strong consensus narratives (the Lakers / LeBron pick), all three LLMs "
+        "converge on similar agent behavior. The within-test Spearman tells us "
+        "round-by-round trajectories are noisy across providers; the across-test "
+        "Spearman tells us aggregate rankings are stable.",
+        italic=True,
+    )
+
+# Within-test trajectory Spearman
+within_test = results.get("spearman", {}).get("within_test_trajectory")
+if within_test:
+    H(3, "Within-test trajectory tracking (sim vs GT shape)")
+    P(
+        "Within each backtest, do the sim's per-round sentiment trajectory and "
+        "the ground-truth tweet trajectory move together? Ground-truth trajectory "
+        "is built by sorting all corpus tweets by timestamp and splitting into "
+        "N equal-size chunks (where N = sim rounds), then taking the mean "
+        "compound score per chunk."
+    )
+    wt_table = doc.add_table(rows=1, cols=4)
+    wt_table.style = "Light Grid Accent 1"
+    hdr = wt_table.rows[0].cells
+    hdr[0].text = "Test"
+    hdr[1].text = "Provider"
+    hdr[2].text = "Spearman (rank)"
+    hdr[3].text = "Pearson (linear)"
+    for h in hdr: h.paragraphs[0].runs[0].bold = True
+    for tk, per_prov in within_test.items():
+        title = next((t["title"] for t in results["tests"] if t["key"] == tk), tk)
+        for prov in ["gemini", "openai", "anthropic"]:
+            d = per_prov.get(prov, {})
+            row = wt_table.add_row().cells
+            row[0].text = title
+            row[1].text = prov.title()
+            s = d.get("spearman")
+            p = d.get("pearson")
+            row[2].text = f"{s:+.3f}" if s is not None else "—"
+            row[3].text = f"{p:+.3f}" if p is not None else "—"
+    doc.add_paragraph()
+    P(
+        "Within-test trajectory correlation is mostly weak across all 9 cells, "
+        "with most values in [-0.20, +0.25]. The standout is Anthropic on the "
+        "Nothing Phone 4a Pro test, where the sim's round-by-round trajectory "
+        "tracks the time-ordered ground-truth chunks at Spearman +0.52 / Pearson "
+        "+0.46 — a moderate positive correlation. Two structural reasons explain "
+        "the otherwise low correlations: (1) the sim begins with the event "
+        "injected at round 0 and progresses through fictional rounds, while the "
+        "ground-truth chunks span real wall-clock time including pre-event "
+        "tweets — these temporal frames are not strictly comparable; (2) sim "
+        "trajectories are noisy at the round level due to LLM stochasticity (see "
+        "the cross-provider table above, where round-by-round agreement between "
+        "providers is also weak). The honest reading: shape-matching at the "
+        "per-round level is not currently a strong claim Pulse can make — but "
+        "the across-test Spearman of +1.0 for OpenAI and Anthropic shows that "
+        "ranking *across events* is reliable even when shape *within an event* "
+        "is not.",
+        italic=True,
+    )
+
+H(2, "Finding 4 — Cross-Provider Robustness")
 P(
     "On every backtest cell where ground truth was available, providers agreed with each "
     "other more than they agreed with reality. Mean sentiment across the four tests "

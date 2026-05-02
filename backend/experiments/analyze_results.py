@@ -127,6 +127,42 @@ def action_type_counts(sim_id: str) -> dict[str, int]:
     return dict(c)
 
 
+def gt_chunked_trajectory(entity_id: str, n_chunks: int) -> list[float]:
+    """Sort GT tweets by created_at, split into N equal-size chunks, return per-chunk mean compound."""
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+    sia = SentimentIntensityAnalyzer()
+    items: list[tuple[datetime, float]] = []
+    ing = ENT_DIR / entity_id / "ingestion"
+    if not ing.exists():
+        return []
+    for jsonl in ing.glob("posts_*.jsonl"):
+        for line in jsonl.open():
+            r = json.loads(line)
+            if r.get("platform") != "twitter":
+                continue
+            content = r.get("content", "")
+            if not content:
+                continue
+            try:
+                ts = datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
+            except Exception:
+                continue
+            items.append((ts, sia.polarity_scores(content)["compound"]))
+    items.sort(key=lambda x: x[0])
+    if not items:
+        return []
+    chunk_size = max(1, len(items) // n_chunks)
+    chunks: list[float] = []
+    for i in range(n_chunks):
+        if i < n_chunks - 1:
+            chunk = items[i * chunk_size : (i + 1) * chunk_size]
+        else:
+            chunk = items[i * chunk_size :]
+        if chunk:
+            chunks.append(sum(s for _, s in chunk) / len(chunk))
+    return chunks
+
+
 def ground_truth_scores(entity_id: str) -> list[float]:
     """Read all twitter posts for entity from today's JSONL and VADER-score them."""
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -149,6 +185,28 @@ def ground_truth_scores(entity_id: str) -> list[float]:
 # ---------------------------------------------------------------------------
 # Comparison metrics
 # ---------------------------------------------------------------------------
+
+def spearman(x: list[float], y: list[float]) -> float | None:
+    """Spearman rank correlation. Pearson on ranks. Returns value in [-1, 1]."""
+    if len(x) < 2 or len(y) < 2:
+        return None
+    n = min(len(x), len(y))
+    x, y = x[:n], y[:n]
+    def _rank(v: list[float]) -> list[int]:
+        s = sorted(range(len(v)), key=lambda i: v[i])
+        r = [0] * len(v)
+        for i, idx in enumerate(s):
+            r[idx] = i + 1
+        return r
+    rx, ry = _rank(x), _rank(y)
+    mx, my = sum(rx) / n, sum(ry) / n
+    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    dx = (sum((a - mx) ** 2 for a in rx)) ** 0.5
+    dy = (sum((b - my) ** 2 for b in ry)) ** 0.5
+    if dx == 0 or dy == 0:
+        return None
+    return num / (dx * dy)
+
 
 def pearson(x: list[float], y: list[float]) -> float | None:
     if len(x) < 2 or len(y) < 2:
@@ -335,10 +393,74 @@ def main():
         # Per-test file
         (OUT / "per_test" / f"{test['key']}.json").write_text(json.dumps(test_data, indent=2))
 
+    # ------------------------------------------------------------------
+    # Spearman analyses (post-hoc across-test and cross-provider)
+    # ------------------------------------------------------------------
+    spearman_block: dict = {}
+
+    # Part 1 — across-test Spearman (rank tests by sim_mean per provider vs GT mean ranking)
+    backtests = [t for t in aggregate["tests"] if t["mode"] == "backtest"]
+    if backtests:
+        gt_means_seq = [t["ground_truth"]["mean"] for t in backtests]
+        across_test = {}
+        for prov in ["gemini", "openai", "anthropic"]:
+            sim_means_seq = [t["providers"].get(prov, {}).get("mean_sentiment") for t in backtests]
+            if any(v is None for v in sim_means_seq):
+                across_test[prov] = None
+                continue
+            across_test[prov] = spearman(sim_means_seq, gt_means_seq)
+        spearman_block["across_tests"] = {
+            "test_keys": [t["key"] for t in backtests],
+            "gt_means": gt_means_seq,
+            "by_provider": across_test,
+        }
+
+    # Part 2 — cross-provider Spearman within each test (round-by-round trajectory)
+    cross_within = {}
+    for t in aggregate["tests"]:
+        trajs = {}
+        for prov in ["gemini", "openai", "anthropic"]:
+            traj = t["providers"].get(prov, {}).get("trajectory", [])
+            trajs[prov] = [r["mean"] for r in traj]
+        if not all(len(v) >= 2 for v in trajs.values()):
+            continue
+        n = min(len(v) for v in trajs.values())
+        pairs = {}
+        for a, b in [("gemini", "openai"), ("gemini", "anthropic"), ("openai", "anthropic")]:
+            pairs[f"{a}_vs_{b}"] = spearman(trajs[a][:n], trajs[b][:n])
+        cross_within[t["key"]] = pairs
+    spearman_block["cross_provider_within_test"] = cross_within
+
+    # Part 3 — within-test Spearman: sim trajectory vs GT chunked trajectory
+    within_test = {}
+    for t in aggregate["tests"]:
+        if t["mode"] != "backtest":
+            continue
+        per_prov = {}
+        for prov in ["gemini", "openai", "anthropic"]:
+            traj = t["providers"].get(prov, {}).get("trajectory", [])
+            sim_means = [r["mean"] for r in traj]
+            if len(sim_means) < 3:
+                per_prov[prov] = {"spearman": None, "pearson": None, "n": len(sim_means)}
+                continue
+            gt_traj = gt_chunked_trajectory(t["entity_id"], len(sim_means))
+            n = min(len(sim_means), len(gt_traj))
+            if n < 3:
+                per_prov[prov] = {"spearman": None, "pearson": None, "n": n}
+                continue
+            s = spearman(sim_means[:n], gt_traj[:n])
+            p = pearson(sim_means[:n], gt_traj[:n])
+            per_prov[prov] = {"spearman": s, "pearson": p, "n": n}
+        within_test[t["key"]] = per_prov
+    spearman_block["within_test_trajectory"] = within_test
+
+    aggregate["spearman"] = spearman_block
+
     (OUT / "results.json").write_text(json.dumps(aggregate, indent=2))
     print(f"\n=== AGGREGATE WRITTEN ===")
     print(f"  {OUT / 'results.json'}")
     print(f"  per-test files in {OUT / 'per_test'}")
+    print(f"  Spearman block included in results.json under 'spearman' key")
 
 
 if __name__ == "__main__":

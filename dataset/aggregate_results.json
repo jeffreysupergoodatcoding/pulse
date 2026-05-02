@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-02T00:06:57.824536",
+  "generated_at": "2026-05-02T14:27:31.400809",
   "tests": [
     {
       "key": "vision_pro_shelved",
@@ -1195,5 +1195,99 @@
         }
       }
     }
-  ]
+  ],
+  "spearman": {
+    "across_tests": {
+      "test_keys": [
+        "vision_pro_shelved",
+        "nothing_4a_pro",
+        "hochul_climate"
+      ],
+      "gt_means": [
+        0.3793134020618556,
+        0.2495149425287357,
+        -0.11620891089108916
+      ],
+      "by_provider": {
+        "gemini": 0.4999999999999999,
+        "openai": 0.9999999999999998,
+        "anthropic": 0.9999999999999998
+      }
+    },
+    "cross_provider_within_test": {
+      "vision_pro_shelved": {
+        "gemini_vs_openai": -0.2857142857142857,
+        "gemini_vs_anthropic": 0.0,
+        "openai_vs_anthropic": 0.07142857142857142
+      },
+      "nothing_4a_pro": {
+        "gemini_vs_openai": -0.16363636363636364,
+        "gemini_vs_anthropic": -0.045454545454545456,
+        "openai_vs_anthropic": 0.06363636363636363
+      },
+      "hochul_climate": {
+        "gemini_vs_openai": 0.21818181818181817,
+        "gemini_vs_anthropic": 0.5363636363636364,
+        "openai_vs_anthropic": 0.00909090909090909
+      },
+      "nba_mvp_2026": {
+        "gemini_vs_openai": 0.6181818181818182,
+        "gemini_vs_anthropic": 0.42727272727272725,
+        "openai_vs_anthropic": 0.5818181818181818
+      }
+    },
+    "within_test_trajectory": {
+      "vision_pro_shelved": {
+        "gemini": {
+          "spearman": -0.18181818181818182,
+          "pearson": -0.026859976252433852,
+          "n": 11
+        },
+        "openai": {
+          "spearman": -0.03636363636363636,
+          "pearson": 0.04199617037385776,
+          "n": 11
+        },
+        "anthropic": {
+          "spearman": -0.42857142857142855,
+          "pearson": -0.4574860404532653,
+          "n": 8
+        }
+      },
+      "nothing_4a_pro": {
+        "gemini": {
+          "spearman": -0.15454545454545454,
+          "pearson": -0.17869823949755054,
+          "n": 11
+        },
+        "openai": {
+          "spearman": -0.07272727272727272,
+          "pearson": -0.13359157900628396,
+          "n": 11
+        },
+        "anthropic": {
+          "spearman": 0.5181818181818182,
+          "pearson": 0.4642674419943457,
+          "n": 11
+        }
+      },
+      "hochul_climate": {
+        "gemini": {
+          "spearman": 0.20909090909090908,
+          "pearson": 0.26545129315688215,
+          "n": 11
+        },
+        "openai": {
+          "spearman": 0.08181818181818182,
+          "pearson": 0.10455763854807505,
+          "n": 11
+        },
+        "anthropic": {
+          "spearman": 0.10909090909090909,
+          "pearson": 0.1509530396912469,
+          "n": 11
+        }
+      }
+    }
+  }
 }
