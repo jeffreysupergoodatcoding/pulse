@@ -123,6 +123,15 @@ The full per-cell results are in `aggregate_results.json`.
 
 ## Known limitations of this dataset
 
+- **Original tweets only — no replies, retweets, or quote tweets.** Every
+  query was augmented with `-is:retweet -is:reply` to keep the corpus to
+  standalone, self-contained tweets. Engagement *counts* (likes, retweets,
+  replies, views) are preserved per record in the `engagement` field, but the
+  *text* of those replies/RTs is not in this dataset. Researchers who want
+  the full reply trees can rehydrate them via the Twitter v2 API using the
+  preserved tweet IDs (`raw.id` field on each record). The same filter was
+  applied to both sim corpora and ground-truth corpora, so the in-experiment
+  comparison is internally consistent.
 - **Sample size is small.** ~100 tweets per test is a thin slice for statistical
   inference. The Pulse writeup reports MAE point estimates, not confidence intervals.
 - **Selection bias from `/search/recent`.** Twitter's relevance ranking may

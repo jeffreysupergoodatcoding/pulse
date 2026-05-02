@@ -69,6 +69,15 @@ policies) may be out of date.
   corpus over-represents high-engagement tweets — which may not represent how
   the median user feels.
 - **English-language only** (`lang:en` filter).
+- **Original tweets only — replies, retweets, and quote tweets are excluded.**
+  The ingestion query appends `-is:retweet -is:reply` to every search. We
+  capture engagement *counts* (likes, retweets, replies, views) per tweet, but
+  not the *content* of replies, RTs, or QTs. This is a significant blind spot:
+  replies are often where the strongest sentiment lives, especially in
+  outrage / pile-on cycles. Both the sim corpus and the ground truth use the
+  same filter, so the comparison is internally consistent — but the *absolute*
+  level of "how Twitter feels" is biased toward original-tweet voice (which
+  tends to be more measured / declarative than reply voice).
 - **Tests were chosen partly for high Twitter volume.** The selection itself
   is biased toward "tweet-able" events.
 - **HN and Twitter both skew toward technologically literate audiences.**

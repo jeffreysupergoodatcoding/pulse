@@ -635,6 +635,7 @@ bullet("Ground-truth pre/post split is not enforced. The 7-day Twitter window of
 H(2, "Corpus and selection-bias concerns")
 bullet("Twitter's /search/recent is relevance-ranked, not uniform-random. The corpus over-represents high-engagement tweets — which may not represent how the median user feels.")
 bullet("English-language only (lang:en filter). Excludes non-English discourse even when the topic is multinational (e.g. Vision Pro is sold globally).")
+bullet("Original tweets only — replies, retweets, and quote tweets are excluded by the ingestion query. We preserve engagement counts (likes, retweets, replies, views) per tweet, but not the content of the replies or RTs. This is a significant blind spot: replies are often where the strongest sentiment lives, especially in outrage or pile-on cycles. The same filter applies to both sim corpora and ground truth, so internal comparison is consistent — but the absolute level of 'how Twitter feels' is biased toward original-tweet voice, which tends to be more measured than reply voice.")
 bullet("Tests were chosen partly for high Twitter volume. The selection itself is biased toward 'tweet-able' events. Less tweet-genic events (e.g. local government decisions, niche product launches) may not be testable on Twitter at all.")
 bullet("Hacker News and Twitter both skew toward technologically literate audiences. Findings on those platforms generalize to those communities, not to the general public.")
 
