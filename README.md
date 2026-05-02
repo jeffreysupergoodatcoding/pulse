@@ -28,7 +28,7 @@ Think of it as a flight simulator for PR and brand strategy.
 |---|---|
 | Backend | Flask 3, Python 3.11, uv |
 | Simulation engine | [OASIS](https://github.com/camel-ai/oasis) (CAMEL-AI), CamelAI |
-| LLM | Gemini 2.5 Flash via OpenAI-compatible endpoint |
+| LLM (default) | Gemini 2.5 Flash Lite via OpenAI-compatible endpoint; multi-provider via [`model_factory`](backend/app/services/model_factory.py) (Gemini, OpenAI, Anthropic) |
 | Memory / graph | Zep Cloud (GraphRAG + episodic memory) |
 | Sentiment | VADER + LLM hybrid |
 | Frontend | Vue 3 + Vite |
