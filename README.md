@@ -170,7 +170,7 @@ Pulse was evaluated as part of a class final project (May 2026). The experiment 
 
 ### Artifacts
 
-- **Full writeup (DOCX)**: [`backend/data/experiment_results/aggregate/Pulse_FinalProject.docx`](backend/data/experiment_results/aggregate/Pulse_FinalProject.docx) — 12-section academic writeup (Audience, Problem, Methodology, Findings, NIST RMF, Limitations, Future Work, Honest Assessment, Reproducibility)
+- **Full writeup (DOCX)**: [`Pulse_FinalProject.docx`](Pulse_FinalProject.docx) at the repo root (also at [`backend/data/experiment_results/aggregate/Pulse_FinalProject.docx`](backend/data/experiment_results/aggregate/Pulse_FinalProject.docx) — same file). 12-section academic writeup (Audience, Problem, Methodology, Findings, NIST RMF, Limitations, Future Work, Honest Assessment, Reproducibility).
 - **Twitter dataset**: [`/dataset`](dataset/) — 4 JSONL files of cleaned, anonymized tweets used in the experiment, plus the aggregate results JSON. See [`/dataset/README.md`](dataset/README.md) for schema, query strings, and ToS notes.
 - **NIST AI RMF mapping**: [`NIST_COMPLIANCE.md`](NIST_COMPLIANCE.md)
 - **Limitations**: [`LIMITATIONS.md`](LIMITATIONS.md)

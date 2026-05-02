@@ -888,3 +888,8 @@ P("Dataset README with schema, queries, and ToS notes: /dataset/README.md")
 
 doc.save(OUT)
 print(f"Wrote {OUT}")
+
+# Also place a top-level copy at the repo root for visibility on GitHub
+ROOT_COPY = ROOT.parent / "Pulse_FinalProject.docx"
+doc.save(ROOT_COPY)
+print(f"Wrote {ROOT_COPY}")
