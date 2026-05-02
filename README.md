@@ -2,9 +2,11 @@
 
 Existing social listening tools measure past sentiment; Pulse simulates future sentiment before a communication decision is made.
 
-PULSE is a social intelligence platform that simulates how real communities react to news, product launches, controversies, and hypothetical events. Given any brand, person, or topic, it spins up hundreds of AI agents — each with a distinct persona grounded in real social data — and runs them through a multi-round social media simulation across Twitter and Reddit. You get live sentiment scores, emergent opinion dynamics, and a prediction of how public sentiment will shift.
+PULSE is a social intelligence platform that simulates how real communities react to news, product launches, controversies, and hypothetical events. Given any brand, person, or topic, it spins up AI agents — each with a distinct persona grounded in real social data — and runs them through a multi-round social media simulation across Twitter and Reddit. You get live sentiment scores, emergent opinion dynamics, and a prediction of how public sentiment will shift.
 
 Think of it as a flight simulator for PR and brand strategy.
+
+> **Final-project status (May 2026):** Pulse has been evaluated against real Twitter ground truth on three recent events (Apple Vision Pro shelving, Nothing Phone 4a Pro launch, NY Climate Law / Hochul standoff) plus one forward-looking forecast (2026 NBA Finals MVP). Across 9 backtest cells, **6/9 correctly matched real Twitter sentiment direction**; the political test (Hochul climate) was the failure case across all three LLM providers, surfacing a **shared positivity-bias risk on contested political content**. See [Final Project Experiment](#final-project-experiment) below for the full results, [`/dataset`](dataset/) for the raw Twitter corpora, [`LIMITATIONS.md`](LIMITATIONS.md) for known weaknesses, and [`NIST_COMPLIANCE.md`](NIST_COMPLIANCE.md) for how Pulse maps to the NIST AI Risk Management Framework.
 
 ---
 
@@ -145,6 +147,53 @@ docker compose up --build
 
 ---
 
+## Final Project Experiment
+
+Pulse was evaluated as part of a class final project (May 2026). The experiment ran 4 tests × 3 LLM providers (Gemini 2.5 Flash Lite, OpenAI gpt-4o-mini, Anthropic Claude Sonnet 4.5) on real recent events, all post-LLM-cutoff.
+
+### Headline results
+
+| Test | Ground truth (mean) | Best provider MAE | All 3 dir-match? |
+|---|---|---|---|
+| Apple Vision Pro shelved (negative) | +0.379 (n=97) | OpenAI 0.077 | ✓ 3/3 |
+| Nothing Phone (4a) Pro (positive) | +0.250 (n=87) | OpenAI 0.048 | ✓ 3/3 |
+| NY Climate Law / Hochul (political) | **−0.116 (n=101)** | (best) Gemini 0.140 | **✗ 0/3 — all directionally wrong** |
+| 2026 NBA Finals MVP forecast | (June 2026 truth) | n/a (forward-looking) | Lakers / LeBron consensus |
+
+**Overall directional accuracy: 6 / 9 backtest cells (67%).** The political failure is the load-bearing finding: all three frontier LLMs simulated *positive* sentiment when real Twitter discourse was *negative*, with cross-provider stdev of only 0.04 (providers agreed with each other while all three were wrong vs. reality).
+
+### Surfaced limitations (concrete, not hypothetical)
+
+- **Positivity / sycophancy bias** on contested political content (NIST Map Risk #3)
+- **Provider-choice bias**: Gemini overshoots positive (mean +0.33), Anthropic undershoots (+0.14), OpenAI in between (+0.23) — the choice of LLM materially biases predictions (Risk #4)
+- **Temporal staleness**: OpenAI and Anthropic agents repeatedly placed Luka Dončić on the Dallas Mavericks despite the February 2025 trade to the Lakers — agent factual reasoning is bounded by the LLM's training cutoff (Risk #5)
+
+### Artifacts
+
+- **Full writeup (DOCX)**: [`backend/data/experiment_results/aggregate/Pulse_FinalProject.docx`](backend/data/experiment_results/aggregate/Pulse_FinalProject.docx) — 12-section academic writeup (Audience, Problem, Methodology, Findings, NIST RMF, Limitations, Future Work, Honest Assessment, Reproducibility)
+- **Twitter dataset**: [`/dataset`](dataset/) — 4 JSONL files of cleaned, anonymized tweets used in the experiment, plus the aggregate results JSON. See [`/dataset/README.md`](dataset/README.md) for schema, query strings, and ToS notes.
+- **NIST AI RMF mapping**: [`NIST_COMPLIANCE.md`](NIST_COMPLIANCE.md)
+- **Limitations**: [`LIMITATIONS.md`](LIMITATIONS.md)
+- **Reproducibility scripts**:
+  - [`backend/experiments/run_full_experiment.py`](backend/experiments/run_full_experiment.py) — full orchestrator
+  - [`backend/experiments/analyze_results.py`](backend/experiments/analyze_results.py) — aggregator + comparison metrics
+  - [`backend/experiments/build_docx.py`](backend/experiments/build_docx.py) — DOCX generator
+  - [`backend/app/services/model_factory.py`](backend/app/services/model_factory.py) — provider-agnostic CAMEL backend builder
+
+### Reproducing the experiment
+
+```bash
+cd backend
+uv run python experiments/run_full_experiment.py             # all 4 tests
+# or
+uv run python experiments/run_full_experiment.py --only nothing_4a_pro
+
+uv run python experiments/analyze_results.py                  # compute MAE etc.
+uv run python experiments/build_docx.py                       # rebuild the DOCX
+```
+
+---
+
 ## License
 
-MIT
+[MIT](LICENSE) — see `LICENSE` file.

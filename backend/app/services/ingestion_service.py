@@ -280,7 +280,20 @@ class IngestionService:
         query: str,
         limit: int = 100,
     ) -> list[PostRecord]:
-        """Pull recent tweets matching query using tweepy v4."""
+        """Pull recent tweets matching a query via Twitter API v2 (tweepy).
+
+        Requires a Bearer Token from a Basic-tier or higher developer account
+        (search_recent_tweets is not available on Free tier). Set
+        TWITTER_BEARER_TOKEN in .env.
+
+        Filters:
+          - excludes pure retweets (no original content) and replies by default
+          - strips URLs and decodes HTML entities
+          - drops tweets shorter than 40 chars after cleaning
+        """
+        import html
+        import re
+
         try:
             import tweepy
         except ImportError:
@@ -291,21 +304,41 @@ class IngestionService:
             logger.warning("TWITTER_BEARER_TOKEN not set — skipping Twitter pull")
             return []
 
+        def _clean(text: str) -> str:
+            if not text:
+                return ""
+            # Remove t.co shortlinks (Twitter auto-appends them)
+            text = re.sub(r"https?://\S+", "", text)
+            text = html.unescape(text)
+            text = re.sub(r"\s+", " ", text)
+            return text.strip()
+
+        # Augment query to exclude RTs/replies and require English by default
+        # Users can override by passing operators in the query themselves.
+        if "-is:retweet" not in query and "is:retweet" not in query:
+            query = f"{query} -is:retweet"
+        if "-is:reply" not in query and "is:reply" not in query:
+            query = f"{query} -is:reply"
+        if "lang:" not in query:
+            query = f"{query} lang:en"
+
         client = tweepy.Client(bearer_token=self.config.TWITTER_BEARER_TOKEN)
         records: list[PostRecord] = []
+        MIN_LEN = 40
 
         try:
             def _fetch():
                 return client.search_recent_tweets(
                     query=query,
-                    max_results=min(limit, 100),
-                    tweet_fields=["created_at", "author_id", "public_metrics", "referenced_tweets"],
-                    user_fields=["public_metrics"],
+                    max_results=min(max(limit, 10), 100),
+                    tweet_fields=["created_at", "author_id", "public_metrics", "referenced_tweets", "lang"],
+                    user_fields=["public_metrics", "username", "verified"],
                     expansions=["author_id"],
                 )
 
             response = _with_backoff(_fetch)
             if not response or not response.data:
+                logger.info(f"Twitter query '{query}': 0 results")
                 return []
 
             users_by_id = {
@@ -313,17 +346,24 @@ class IngestionService:
             }
 
             for tweet in response.data:
+                content = _clean(tweet.text or "")
+                if len(content) < MIN_LEN:
+                    continue
+
                 author = users_by_id.get(str(tweet.author_id))
                 metrics = tweet.public_metrics or {}
+                author_metrics = (author.public_metrics if author else None) or {}
                 record = PostRecord(
                     id=f"twitter:{tweet.id}",
                     platform="twitter",
                     entity_id=entity_id,
                     author_id=_anonymize(str(tweet.author_id)),
                     author_metadata={
-                        "followers": author.public_metrics.get("followers_count", 0) if author and author.public_metrics else 0,
+                        "username": getattr(author, "username", "") if author else "",
+                        "followers": author_metrics.get("followers_count", 0),
+                        "verified": bool(getattr(author, "verified", False)) if author else False,
                     },
-                    content=tweet.text,
+                    content=content,
                     parent_id=None,
                     created_at=tweet.created_at or datetime.now(timezone.utc),
                     engagement={
@@ -333,7 +373,7 @@ class IngestionService:
                         "views": metrics.get("impression_count", 0),
                     },
                     url=f"https://twitter.com/i/web/status/{tweet.id}",
-                    raw={"id": str(tweet.id), "metrics": metrics},
+                    raw={"id": str(tweet.id), "metrics": metrics, "lang": getattr(tweet, "lang", "")},
                 )
                 records.append(record)
 
@@ -421,17 +461,38 @@ class IngestionService:
         queries: list[str],
         limit: int = 200,
     ) -> list[PostRecord]:
-        """Pull stories and comments from Hacker News via Algolia Search API."""
+        """Pull stories and comments from Hacker News via Algolia Search API.
+
+        Uses relevance-ranked /search (not /search_by_date) so the highest-quality
+        matches come first. Strips HTML, decodes entities, filters short stubs,
+        and requires the query term to appear in comment text (avoids off-topic
+        comments on tangentially-tagged stories).
+        """
+        import html
+        import re
         import urllib.parse
 
+        def _clean(text: str) -> str:
+            if not text:
+                return ""
+            # Strip HTML tags, decode entities, normalize whitespace
+            text = re.sub(r"<[^>]+>", " ", text)
+            text = html.unescape(text)
+            text = re.sub(r"\s+", " ", text)
+            return text.strip()
+
+        MIN_LEN = 80   # filter out stubs and one-liners
         records: list[PostRecord] = []
         per_query = max(1, limit // max(len(queries), 1))
 
         for query in queries:
+            q_lower = query.lower()
+            # Word-boundary match so "openai" doesn't match "openairplane"
+            q_pattern = re.compile(rf"\b{re.escape(q_lower)}\b", re.IGNORECASE)
             try:
-                # Pull stories
+                # ---- Stories: relevance-ranked, prefer ones with body or comments ----
                 story_url = (
-                    "https://hn.algolia.com/api/v1/search_by_date?"
+                    "https://hn.algolia.com/api/v1/search?"
                     + urllib.parse.urlencode({
                         "query": query,
                         "tags": "story",
@@ -441,10 +502,13 @@ class IngestionService:
                 story_resp = _requests.get(story_url, timeout=15).json()
 
                 for hit in story_resp.get("hits", []):
-                    content = hit.get("title", "")
-                    story_text = hit.get("story_text") or ""
-                    if story_text:
-                        content = f"{content}\n\n{story_text}"
+                    title = _clean(hit.get("title", ""))
+                    story_text = _clean(hit.get("story_text") or "")
+                    content = f"{title}\n\n{story_text}".strip() if story_text else title
+
+                    # Skip stories with no real content unless they have meaningful engagement
+                    if len(content) < MIN_LEN and (hit.get("num_comments") or 0) < 5:
+                        continue
 
                     record = PostRecord(
                         id=f"hn:{hit['objectID']}",
@@ -452,7 +516,7 @@ class IngestionService:
                         entity_id=entity_id,
                         author_id=_anonymize(hit.get("author", "unknown")),
                         author_metadata={"username": hit.get("author", "")},
-                        content=content.strip(),
+                        content=content,
                         parent_id=None,
                         created_at=datetime.fromisoformat(
                             hit["created_at"].replace("Z", "+00:00")
@@ -468,9 +532,9 @@ class IngestionService:
                     )
                     records.append(record)
 
-                # Pull comments
+                # ---- Comments: relevance-ranked, must mention the query term ----
                 comment_url = (
-                    "https://hn.algolia.com/api/v1/search_by_date?"
+                    "https://hn.algolia.com/api/v1/search?"
                     + urllib.parse.urlencode({
                         "query": query,
                         "tags": "comment",
@@ -480,8 +544,13 @@ class IngestionService:
                 comment_resp = _requests.get(comment_url, timeout=15).json()
 
                 for hit in comment_resp.get("hits", []):
-                    comment_text = hit.get("comment_text") or ""
-                    if not comment_text:
+                    comment_text = _clean(hit.get("comment_text") or "")
+                    if not comment_text or len(comment_text) < MIN_LEN:
+                        continue
+                    # Require the query term to actually appear in the comment body
+                    # (Algolia tags comments by parent story, so off-topic threads leak through).
+                    # Word-boundary match avoids "openai" matching "openairplane".
+                    if not q_pattern.search(comment_text):
                         continue
 
                     record = PostRecord(
@@ -490,7 +559,7 @@ class IngestionService:
                         entity_id=entity_id,
                         author_id=_anonymize(hit.get("author", "unknown")),
                         author_metadata={"username": hit.get("author", "")},
-                        content=comment_text.strip(),
+                        content=comment_text,
                         parent_id=f"hn:{hit.get('story_id', '')}",
                         created_at=datetime.fromisoformat(
                             hit["created_at"].replace("Z", "+00:00")

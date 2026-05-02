@@ -1,0 +1,289 @@
+{
+  "key": "hochul_climate",
+  "title": "NY Climate Law Standoff",
+  "domain": "political",
+  "mode": "backtest",
+  "entity_id": "ad5f6dd2-f89e-4a75-bd57-1faa539aeb8f",
+  "providers": {
+    "gemini": {
+      "sim_id": "41ca6693-0c35-4839-97fb-8eaa2d47618b",
+      "provider": "gemini",
+      "model": "gemini-2.5-flash-lite",
+      "rounds": 10,
+      "current_round": 10,
+      "actions_count": 304,
+      "note": "",
+      "trajectory": [
+        {
+          "round": 0,
+          "mean": 0.2732,
+          "n": 2
+        },
+        {
+          "round": 1,
+          "mean": 0.20427499999999996,
+          "n": 32
+        },
+        {
+          "round": 2,
+          "mean": -0.14602830188679242,
+          "n": 53
+        },
+        {
+          "round": 3,
+          "mean": -0.023985714285714287,
+          "n": 42
+        },
+        {
+          "round": 4,
+          "mean": 0.011524999999999994,
+          "n": 24
+        },
+        {
+          "round": 5,
+          "mean": 0.13746296296296295,
+          "n": 27
+        },
+        {
+          "round": 6,
+          "mean": -0.15588333333333335,
+          "n": 24
+        },
+        {
+          "round": 7,
+          "mean": -0.022408333333333322,
+          "n": 24
+        },
+        {
+          "round": 8,
+          "mean": 0.07438846153846156,
+          "n": 26
+        },
+        {
+          "round": 9,
+          "mean": -0.049140909090909075,
+          "n": 22
+        },
+        {
+          "round": 10,
+          "mean": -0.04706071428571427,
+          "n": 28
+        }
+      ],
+      "action_types": {
+        "create_post": 50,
+        "dislike_post": 97,
+        "like_post": 49,
+        "quote_post": 25,
+        "repost": 14,
+        "do_nothing": 5,
+        "search_posts": 6,
+        "report_post": 5,
+        "create_comment": 16,
+        "dislike_comment": 12,
+        "like_comment": 18,
+        "follow": 2,
+        "refresh": 4,
+        "undo_dislike_post": 1
+      },
+      "total_actions": 304,
+      "n_action_types": 14,
+      "mean_sentiment": 0.0233040107532389
+    },
+    "openai": {
+      "sim_id": "298f55fa-bcc1-40d1-9fd9-1a13f1defcf2",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "rounds": 10,
+      "current_round": 10,
+      "actions_count": 301,
+      "note": "",
+      "trajectory": [
+        {
+          "round": 0,
+          "mean": 0.2732,
+          "n": 2
+        },
+        {
+          "round": 1,
+          "mean": 0.10511764705882354,
+          "n": 34
+        },
+        {
+          "round": 2,
+          "mean": 0.2752035714285714,
+          "n": 28
+        },
+        {
+          "round": 3,
+          "mean": 0.0,
+          "n": 21
+        },
+        {
+          "round": 4,
+          "mean": 0.043258064516129034,
+          "n": 31
+        },
+        {
+          "round": 5,
+          "mean": 0.16284848484848488,
+          "n": 33
+        },
+        {
+          "round": 6,
+          "mean": 0.006242424242424246,
+          "n": 33
+        },
+        {
+          "round": 7,
+          "mean": 0.12685555555555555,
+          "n": 27
+        },
+        {
+          "round": 8,
+          "mean": 0.11792258064516128,
+          "n": 31
+        },
+        {
+          "round": 9,
+          "mean": 0.08859310344827585,
+          "n": 29
+        },
+        {
+          "round": 10,
+          "mean": 0.180228125,
+          "n": 32
+        }
+      ],
+      "action_types": {
+        "create_post": 15,
+        "dislike_post": 23,
+        "create_comment": 51,
+        "like_post": 18,
+        "quote_post": 14,
+        "repost": 15,
+        "do_nothing": 164,
+        "refresh": 1
+      },
+      "total_actions": 301,
+      "n_action_types": 8,
+      "mean_sentiment": 0.12540632334031143
+    },
+    "anthropic": {
+      "sim_id": "f276ea74-5e9a-4392-97f0-f591fd6a5789",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "rounds": 10,
+      "current_round": 10,
+      "actions_count": 297,
+      "note": "",
+      "trajectory": [
+        {
+          "round": 0,
+          "mean": 0.2732,
+          "n": 2
+        },
+        {
+          "round": 1,
+          "mean": 0.10433448275862069,
+          "n": 29
+        },
+        {
+          "round": 2,
+          "mean": -0.011218181818181827,
+          "n": 33
+        },
+        {
+          "round": 3,
+          "mean": 0.08738823529411766,
+          "n": 34
+        },
+        {
+          "round": 4,
+          "mean": 0.03567499999999999,
+          "n": 28
+        },
+        {
+          "round": 5,
+          "mean": -0.03056,
+          "n": 25
+        },
+        {
+          "round": 6,
+          "mean": -0.048825925925925925,
+          "n": 27
+        },
+        {
+          "round": 7,
+          "mean": 0.05091999999999999,
+          "n": 25
+        },
+        {
+          "round": 8,
+          "mean": 0.2655771428571429,
+          "n": 35
+        },
+        {
+          "round": 9,
+          "mean": 0.11124687500000001,
+          "n": 32
+        },
+        {
+          "round": 10,
+          "mean": 0.0,
+          "n": 27
+        }
+      ],
+      "action_types": {
+        "create_post": 13,
+        "like_post": 23,
+        "quote_post": 12,
+        "do_nothing": 205,
+        "create_comment": 21,
+        "like_comment": 13,
+        "dislike_post": 6,
+        "dislike_comment": 1,
+        "repost": 2,
+        "search_posts": 1
+      },
+      "total_actions": 297,
+      "n_action_types": 10,
+      "mean_sentiment": 0.07615796619688849
+    }
+  },
+  "ground_truth": {
+    "n": 101,
+    "mean": -0.11620891089108916
+  },
+  "comparisons": {
+    "gemini": {
+      "sim_mean": 0.0233040107532389,
+      "gt_mean": -0.11620891089108916,
+      "mae_overall": 0.13951292164432805,
+      "directional_agreement": false,
+      "trajectory_pearson": null
+    },
+    "openai": {
+      "sim_mean": 0.12540632334031143,
+      "gt_mean": -0.11620891089108916,
+      "mae_overall": 0.24161523423140058,
+      "directional_agreement": false,
+      "trajectory_pearson": null
+    },
+    "anthropic": {
+      "sim_mean": 0.07615796619688849,
+      "gt_mean": -0.11620891089108916,
+      "mae_overall": 0.19236687708797764,
+      "directional_agreement": false,
+      "trajectory_pearson": null
+    }
+  },
+  "cross_provider": {
+    "n_providers": 3,
+    "mean_of_means": 0.07495610009681293,
+    "stdev_of_means": 0.04169175714294094,
+    "min": 0.0233040107532389,
+    "max": 0.12540632334031143
+  },
+  "nba_predictions": {}
+}

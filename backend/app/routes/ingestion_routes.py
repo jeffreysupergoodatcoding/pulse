@@ -91,6 +91,37 @@ def preview(entity_id: str):
     return jsonify({"entity_id": entity_id, "records": records, "count": len(records)})
 
 
+@ingestion_bp.get("/twitter/check")
+def twitter_check():
+    """
+    GET /api/ingestion/twitter/check
+    Quick health check: validates TWITTER_BEARER_TOKEN by hitting the
+    /2/users/me equivalent (a tiny search). Returns {ok, message, tier_hint}.
+    """
+    from app.config import Config
+    if not Config.TWITTER_BEARER_TOKEN:
+        return jsonify({
+            "ok": False,
+            "message": "TWITTER_BEARER_TOKEN not set in .env",
+        }), 200
+
+    try:
+        import tweepy
+        client = tweepy.Client(bearer_token=Config.TWITTER_BEARER_TOKEN)
+        resp = client.search_recent_tweets(query="hello lang:en", max_results=10)
+        n = len(resp.data) if resp and resp.data else 0
+        return jsonify({
+            "ok": True,
+            "message": f"Bearer token works — fetched {n} sample tweets",
+        })
+    except Exception as exc:
+        msg = str(exc)
+        hint = ""
+        if "403" in msg or "Unauthorized" in msg or "401" in msg:
+            hint = " (token may be invalid; recent search requires Basic tier+)"
+        return jsonify({"ok": False, "message": msg, "tier_hint": hint}), 200
+
+
 @ingestion_bp.post("/schedule")
 def schedule():
     """

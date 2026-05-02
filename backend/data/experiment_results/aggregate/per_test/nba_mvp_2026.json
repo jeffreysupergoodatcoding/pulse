@@ -1,0 +1,342 @@
+{
+  "key": "nba_mvp_2026",
+  "title": "2026 NBA Finals Forecast",
+  "domain": "sports_forward",
+  "mode": "forward",
+  "entity_id": "ec91086f-93e7-4750-bac1-7c75908f9877",
+  "providers": {
+    "gemini": {
+      "sim_id": "63d2c8eb-a1ab-429f-97c8-368d1c9ee2e5",
+      "provider": "gemini",
+      "model": "gemini-2.5-flash-lite",
+      "rounds": 10,
+      "current_round": 10,
+      "actions_count": 377,
+      "note": "",
+      "trajectory": [
+        {
+          "round": 0,
+          "mean": 0.8885,
+          "n": 2
+        },
+        {
+          "round": 1,
+          "mean": 0.5495560000000003,
+          "n": 50
+        },
+        {
+          "round": 2,
+          "mean": 0.586531147540984,
+          "n": 61
+        },
+        {
+          "round": 3,
+          "mean": 0.5844641025641027,
+          "n": 39
+        },
+        {
+          "round": 4,
+          "mean": 0.5644567567567569,
+          "n": 37
+        },
+        {
+          "round": 5,
+          "mean": 0.5592272727272728,
+          "n": 33
+        },
+        {
+          "round": 6,
+          "mean": 0.5336838709677418,
+          "n": 31
+        },
+        {
+          "round": 7,
+          "mean": 0.524558620689655,
+          "n": 29
+        },
+        {
+          "round": 8,
+          "mean": 0.5829228571428571,
+          "n": 35
+        },
+        {
+          "round": 9,
+          "mean": 0.5723064516129032,
+          "n": 31
+        },
+        {
+          "round": 10,
+          "mean": 0.5778068965517241,
+          "n": 29
+        }
+      ],
+      "action_types": {
+        "create_post": 40,
+        "like_post": 232,
+        "do_nothing": 15,
+        "search_posts": 3,
+        "repost": 8,
+        "create_comment": 25,
+        "quote_post": 20,
+        "refresh": 1,
+        "like_comment": 32,
+        "trend": 1
+      },
+      "total_actions": 377,
+      "n_action_types": 10,
+      "mean_sentiment": 0.5930921796867271
+    },
+    "openai": {
+      "sim_id": "2c1d8c86-a04b-47cf-b1f6-abcd5a30aa4f",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "rounds": 10,
+      "current_round": 10,
+      "actions_count": 394,
+      "note": "",
+      "trajectory": [
+        {
+          "round": 0,
+          "mean": 0.8885,
+          "n": 2
+        },
+        {
+          "round": 1,
+          "mean": 0.44776333333333324,
+          "n": 60
+        },
+        {
+          "round": 2,
+          "mean": 0.5324456140350877,
+          "n": 57
+        },
+        {
+          "round": 3,
+          "mean": 0.14173666666666668,
+          "n": 30
+        },
+        {
+          "round": 4,
+          "mean": 0.19636341463414636,
+          "n": 41
+        },
+        {
+          "round": 5,
+          "mean": 0.0,
+          "n": 33
+        },
+        {
+          "round": 6,
+          "mean": 0.0,
+          "n": 28
+        },
+        {
+          "round": 7,
+          "mean": 0.0,
+          "n": 31
+        },
+        {
+          "round": 8,
+          "mean": 0.12063703703703704,
+          "n": 27
+        },
+        {
+          "round": 9,
+          "mean": 0.32571749999999994,
+          "n": 40
+        },
+        {
+          "round": 10,
+          "mean": 0.36871777777777776,
+          "n": 45
+        }
+      ],
+      "action_types": {
+        "create_post": 10,
+        "create_comment": 95,
+        "join_group": 7,
+        "repost": 33,
+        "send_to_group": 7,
+        "like_post": 31,
+        "quote_post": 7,
+        "do_nothing": 204
+      },
+      "total_actions": 394,
+      "n_action_types": 8,
+      "mean_sentiment": 0.27471648577127716
+    },
+    "anthropic": {
+      "sim_id": "b2a26e6e-ceb4-4275-a071-ec8572787343",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-5-20250929",
+      "rounds": 10,
+      "current_round": 10,
+      "actions_count": 294,
+      "note": "",
+      "trajectory": [
+        {
+          "round": 0,
+          "mean": 0.8885,
+          "n": 2
+        },
+        {
+          "round": 1,
+          "mean": 0.1113857142857143,
+          "n": 28
+        },
+        {
+          "round": 2,
+          "mean": 0.06831481481481481,
+          "n": 27
+        },
+        {
+          "round": 3,
+          "mean": 0.02445625,
+          "n": 32
+        },
+        {
+          "round": 4,
+          "mean": 0.053720000000000004,
+          "n": 30
+        },
+        {
+          "round": 5,
+          "mean": 0.09363030303030302,
+          "n": 33
+        },
+        {
+          "round": 6,
+          "mean": 0.0,
+          "n": 26
+        },
+        {
+          "round": 7,
+          "mean": 0.0,
+          "n": 24
+        },
+        {
+          "round": 8,
+          "mean": 0.0,
+          "n": 33
+        },
+        {
+          "round": 9,
+          "mean": 0.0,
+          "n": 29
+        },
+        {
+          "round": 10,
+          "mean": 0.0,
+          "n": 30
+        }
+      ],
+      "action_types": {
+        "create_post": 3,
+        "create_comment": 15,
+        "like_post": 3,
+        "do_nothing": 269,
+        "repost": 1,
+        "like_comment": 3
+      },
+      "total_actions": 294,
+      "n_action_types": 6,
+      "mean_sentiment": 0.11272791655734836
+    }
+  },
+  "ground_truth": {
+    "n": 0,
+    "mean": null
+  },
+  "comparisons": {},
+  "cross_provider": {
+    "n_providers": 3,
+    "mean_of_means": 0.3268455273384509,
+    "stdev_of_means": 0.1995420324208943,
+    "min": 0.11272791655734836,
+    "max": 0.5930921796867271
+  },
+  "nba_predictions": {
+    "gemini": {
+      "team_mentions": {
+        "Lakers": 25,
+        "Bucks": 1,
+        "Mavericks": 1
+      },
+      "player_mentions": {
+        "LeBron": 23,
+        "Jokic": 13,
+        "Mitchell": 7,
+        "Giannis": 6,
+        "Luka": 5,
+        "Doncic": 3,
+        "Antetokounmpo": 1
+      },
+      "win_phrases_sample": [
+        "As a Lakers fan, I'm hoping to see the Los Angeles Lakers compete for the championship",
+        "I'm calling it now, LeBron and the Lakers are bringing home the championship, and he'll snag that Finals MVP",
+        "\ud83d\udc9c\ud83d\udc9b #LakersNation #NBAChampionships",
+        "When the Lakers are playing, I'm all in, celebrating every series win and every successful round",
+        "I'm hoping to see the Los Angeles Lakers competing for the championship"
+      ],
+      "mvp_phrases_sample": [
+        "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+        "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+        "The 2026 NBA MVP race is heating up",
+        "#NBAMVP2026",
+        "Any predictions for Finals MVP"
+      ]
+    },
+    "openai": {
+      "team_mentions": {
+        "Lakers": 41,
+        "Nuggets": 12,
+        "Warriors": 5,
+        "Mavericks": 5,
+        "Bucks": 4,
+        "Celtics": 2
+      },
+      "player_mentions": {
+        "LeBron": 36,
+        "Jokic": 14,
+        "Luka": 12,
+        "Doncic": 6,
+        "Giannis": 4,
+        "Curry": 4,
+        "Mitchell": 3
+      },
+      "win_phrases_sample": [
+        "I think the Los Angeles Lakers have what it takes to make a strong push for the championship this year",
+        "With the recent playoff performances, I'm leaning towards the Nuggets taking the championship this year",
+        "I believe the championship will go to the Golden State Warriors, and I'm rooting for Steph Curry to grab the Finals MVP",
+        "I'm rooting for the Nuggets to take the championship again with Jokic as the Finals MVP",
+        "I believe the Lakers have a strong chance at winning the championship this year"
+      ],
+      "mvp_phrases_sample": [
+        "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+        "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+        "What are your thoughts on the narratives surrounding MVP races this postseason",
+        "I see a strong possibility for the Bucks to take it all, with Giannis making a compelling case for Finals MVP given his playoff performances this year",
+        "With the right matchups and playoff form, we could see an awesome Finals MVP from our squad"
+      ]
+    },
+    "anthropic": {
+      "team_mentions": {
+        "Lakers": 5,
+        "Celtics": 2
+      },
+      "player_mentions": {
+        "Luka": 3,
+        "LeBron": 3,
+        "Mitchell": 2
+      },
+      "win_phrases_sample": [],
+      "mvp_phrases_sample": [
+        "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+        "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+        "\ud83d\udd25 I've been tracking the MVP race all season and whoever takes Finals MVP in 2026 is gonna be LEGENDARY",
+        "I'm really curious to see if someone like Luka can finally break through and get that Finals MVP, or if we'll see another dominant performance from one of the established stars",
+        "For Finals MVP, you have to look at who's been elevating their game in clutch moments - that's"
+      ]
+    }
+  }
+}

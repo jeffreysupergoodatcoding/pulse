@@ -27,6 +27,8 @@ class SimulationRunner:
         sim_id: str,
         entity_id: str,
         hypothetical_event: str | None = None,
+        llm_provider: str = "gemini",
+        llm_model: str | None = None,
     ) -> bool:
         sim_dir = Path(self.config.SIMULATIONS_DIR) / sim_id
         profiles_path = sim_dir / "profiles.json"
@@ -43,7 +45,10 @@ class SimulationRunner:
             "--config_path", str(config_path),
             "--output_dir", str(sim_dir),
             "--entity_id", entity_id,
+            "--llm_provider", llm_provider,
         ]
+        if llm_model:
+            cmd += ["--llm_model", llm_model]
         if hypothetical_event:
             cmd += ["--hypothetical_event", hypothetical_event]
 

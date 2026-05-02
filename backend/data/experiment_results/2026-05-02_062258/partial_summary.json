@@ -1,0 +1,218 @@
+{
+  "experiment_dir": "/Users/jeffreysu/Desktop/personal projects/pulse/backend/data/experiment_results/2026-05-02_062258",
+  "tests": [
+    {
+      "key": "nba_mvp_2026",
+      "title": "2026 NBA Finals MVP Forecast",
+      "domain": "sports_forward",
+      "mode": "forward",
+      "twitter_query": "(NBA OR Finals OR MVP OR playoffs)",
+      "hn_query": "NBA playoffs MVP",
+      "event": "The 2026 NBA Finals tip off in early June. Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups.",
+      "entity_id": "ec91086f-93e7-4750-bac1-7c75908f9877",
+      "persona_set_id": "bb170aa1-4d61-43a9-a3c1-5c06f9be19f4",
+      "ingest": {
+        "records_pulled": 92,
+        "records_new": 92
+      },
+      "graph": {
+        "nodes": 186,
+        "edges": 206,
+        "episodes": 92
+      },
+      "sims": [
+        {
+          "sim_id": "63d2c8eb-a1ab-429f-97c8-368d1c9ee2e5",
+          "provider": "gemini",
+          "n_agents": 20,
+          "rounds": 10,
+          "trajectory": [
+            {
+              "round": 0,
+              "mean_score": 0.8885,
+              "n_actions": 2
+            },
+            {
+              "round": 1,
+              "mean_score": 0.5495560000000003,
+              "n_actions": 50
+            },
+            {
+              "round": 2,
+              "mean_score": 0.586531147540984,
+              "n_actions": 61
+            },
+            {
+              "round": 3,
+              "mean_score": 0.5844641025641027,
+              "n_actions": 39
+            },
+            {
+              "round": 4,
+              "mean_score": 0.5644567567567569,
+              "n_actions": 37
+            },
+            {
+              "round": 5,
+              "mean_score": 0.5592272727272728,
+              "n_actions": 33
+            },
+            {
+              "round": 6,
+              "mean_score": 0.5336838709677418,
+              "n_actions": 31
+            },
+            {
+              "round": 7,
+              "mean_score": 0.524558620689655,
+              "n_actions": 29
+            },
+            {
+              "round": 8,
+              "mean_score": 0.5829228571428571,
+              "n_actions": 35
+            },
+            {
+              "round": 9,
+              "mean_score": 0.5723064516129032,
+              "n_actions": 31
+            },
+            {
+              "round": 10,
+              "mean_score": 0.5778068965517241,
+              "n_actions": 29
+            }
+          ]
+        },
+        {
+          "sim_id": "2c1d8c86-a04b-47cf-b1f6-abcd5a30aa4f",
+          "provider": "openai",
+          "n_agents": 20,
+          "rounds": 10,
+          "trajectory": [
+            {
+              "round": 0,
+              "mean_score": 0.8885,
+              "n_actions": 2
+            },
+            {
+              "round": 1,
+              "mean_score": 0.44776333333333324,
+              "n_actions": 60
+            },
+            {
+              "round": 2,
+              "mean_score": 0.5324456140350877,
+              "n_actions": 57
+            },
+            {
+              "round": 3,
+              "mean_score": 0.14173666666666668,
+              "n_actions": 30
+            },
+            {
+              "round": 4,
+              "mean_score": 0.19636341463414636,
+              "n_actions": 41
+            },
+            {
+              "round": 5,
+              "mean_score": 0.0,
+              "n_actions": 33
+            },
+            {
+              "round": 6,
+              "mean_score": 0.0,
+              "n_actions": 28
+            },
+            {
+              "round": 7,
+              "mean_score": 0.0,
+              "n_actions": 31
+            },
+            {
+              "round": 8,
+              "mean_score": 0.12063703703703704,
+              "n_actions": 27
+            },
+            {
+              "round": 9,
+              "mean_score": 0.32571749999999994,
+              "n_actions": 40
+            },
+            {
+              "round": 10,
+              "mean_score": 0.36871777777777776,
+              "n_actions": 45
+            }
+          ]
+        },
+        {
+          "sim_id": "b2a26e6e-ceb4-4275-a071-ec8572787343",
+          "provider": "anthropic",
+          "n_agents": 20,
+          "rounds": 10,
+          "trajectory": [
+            {
+              "round": 0,
+              "mean_score": 0.8885,
+              "n_actions": 2
+            },
+            {
+              "round": 1,
+              "mean_score": 0.1113857142857143,
+              "n_actions": 28
+            },
+            {
+              "round": 2,
+              "mean_score": 0.06831481481481481,
+              "n_actions": 27
+            },
+            {
+              "round": 3,
+              "mean_score": 0.02445625,
+              "n_actions": 32
+            },
+            {
+              "round": 4,
+              "mean_score": 0.053720000000000004,
+              "n_actions": 30
+            },
+            {
+              "round": 5,
+              "mean_score": 0.09363030303030302,
+              "n_actions": 33
+            },
+            {
+              "round": 6,
+              "mean_score": 0.0,
+              "n_actions": 26
+            },
+            {
+              "round": 7,
+              "mean_score": 0.0,
+              "n_actions": 24
+            },
+            {
+              "round": 8,
+              "mean_score": 0.0,
+              "n_actions": 33
+            },
+            {
+              "round": 9,
+              "mean_score": 0.0,
+              "n_actions": 29
+            },
+            {
+              "round": 10,
+              "mean_score": 0.0,
+              "n_actions": 30
+            }
+          ]
+        }
+      ],
+      "ground_truth_scores": [],
+      "ground_truth_mean": null
+    }
+  ]
+}

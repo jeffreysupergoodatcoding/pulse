@@ -322,6 +322,8 @@ async def run_simulation(
     hypothetical_event: str | None,
     model,
     llm_client: OpenAI,
+    llm_provider: str = "gemini",
+    llm_model: str = "",
 ):
     logger = AgentLogger(output_dir)
     scorer = SentimentScorer()
@@ -341,6 +343,8 @@ async def run_simulation(
         "twitter_done": False,
         "reddit_done": False,
         "actions_count": 0,
+        "llm_provider": llm_provider,
+        "llm_model": llm_model,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None,
         "error_message": None,
@@ -547,6 +551,11 @@ def main():
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--entity_id", required=True)
     parser.add_argument("--hypothetical_event", default=None)
+    parser.add_argument("--llm_provider", default="gemini",
+                        choices=["gemini", "openai", "anthropic"],
+                        help="Which LLM provider drives agent decisions")
+    parser.add_argument("--llm_model", default=None,
+                        help="Override model name (e.g. claude-opus-4-1)")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -555,25 +564,21 @@ def main():
     profiles = json.loads(Path(args.profiles_path).read_text())
     config = json.loads(Path(args.config_path).read_text())
 
-    api_key = os.getenv("LLM_API_KEY", "")
-    base_url = os.getenv("LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
-    model_name = os.getenv("LLM_MODEL_NAME", "gemini-2.5-flash")
+    # Build provider-specific CAMEL ModelBackend + OpenAI-compat scratch client
+    from app.services.model_factory import build_provider
+    spec = build_provider(args.llm_provider, args.llm_model)
+    model = spec.camel_model
+    llm_client = spec.llm_client
 
-    # CamelAI OPENAI_COMPATIBLE_MODEL reads from env vars
-    os.environ["OPENAI_API_KEY"] = api_key
-    os.environ["OPENAI_BASE_URL"] = base_url
-
-    model = ModelFactory.create(
-        model_platform=ModelPlatformType.OPENAI_COMPATIBLE_MODEL,
-        model_type=model_name,
-        api_key=api_key,
-        url=base_url,
-    )
-
-    llm_client = OpenAI(api_key=api_key, base_url=base_url)
+    # Tag this run with the provider/model so cross-run analysis is unambiguous
+    (output_dir / "model_info.json").write_text(json.dumps({
+        "provider": spec.provider,
+        "model": spec.model_name,
+    }, indent=2))
 
     print(f"[sim] Starting simulation {args.simulation_id}: "
-          f"{len(profiles)} agents, {config.get('rounds', 10)} rounds", flush=True)
+          f"{len(profiles)} agents, {config.get('rounds', 10)} rounds, "
+          f"provider={spec.provider}, model={spec.model_name}", flush=True)
 
     try:
         asyncio.run(run_simulation(
@@ -585,6 +590,8 @@ def main():
             hypothetical_event=args.hypothetical_event,
             model=model,
             llm_client=llm_client,
+            llm_provider=spec.provider,
+            llm_model=spec.model_name,
         ))
     except Exception as exc:
         import traceback

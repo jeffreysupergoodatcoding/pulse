@@ -50,9 +50,14 @@ def list_simulations():
 
 @simulation_bp.post("/<sim_id>/start")
 def start(sim_id: str):
-    """POST /api/simulation/<sim_id>/start"""
+    """POST /api/simulation/<sim_id>/start
+    Body: {hypothetical_event?, llm_provider?, llm_model?}
+    llm_provider: gemini (default) | openai | anthropic
+    """
     body = request.get_json(force=True) or {}
     hypothetical_event = body.get("hypothetical_event")
+    llm_provider = body.get("llm_provider", "gemini")
+    llm_model = body.get("llm_model")
 
     state = simulation_manager.get_state(sim_id)
     if not state:
@@ -62,10 +67,18 @@ def start(sim_id: str):
         return jsonify({"ok": True, "simulation_id": sim_id, "already_running": True})
 
     entity_id = state.get("entity_id", "")
-    ok = simulation_runner.start(sim_id, entity_id, hypothetical_event)
+    ok = simulation_runner.start(
+        sim_id, entity_id, hypothetical_event,
+        llm_provider=llm_provider, llm_model=llm_model,
+    )
     if not ok:
         return jsonify({"error": "failed to start simulation"}), 500
-    return jsonify({"ok": True, "simulation_id": sim_id})
+    return jsonify({
+        "ok": True,
+        "simulation_id": sim_id,
+        "llm_provider": llm_provider,
+        "llm_model": llm_model,
+    })
 
 
 @simulation_bp.get("/<sim_id>/status")

@@ -1,0 +1,1199 @@
+{
+  "generated_at": "2026-05-02T00:06:57.824536",
+  "tests": [
+    {
+      "key": "vision_pro_shelved",
+      "title": "Apple Vision Pro Shelved",
+      "domain": "marketing_negative",
+      "mode": "backtest",
+      "entity_id": "2926bc40-e1bc-45a8-a2b8-33d43c9dbc0a",
+      "providers": {
+        "gemini": {
+          "sim_id": "f3b2e177-c7ad-4ada-8d86-520f7eed0f11",
+          "provider": "gemini",
+          "model": "gemini-2.5-flash-lite",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 302,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.1197,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.052364285714285703,
+              "n": 42
+            },
+            {
+              "round": 2,
+              "mean": 0.02081714285714285,
+              "n": 35
+            },
+            {
+              "round": 3,
+              "mean": 0.084,
+              "n": 34
+            },
+            {
+              "round": 4,
+              "mean": 0.14043666666666665,
+              "n": 30
+            },
+            {
+              "round": 5,
+              "mean": 0.36782999999999993,
+              "n": 30
+            },
+            {
+              "round": 6,
+              "mean": 0.22962692307692312,
+              "n": 26
+            },
+            {
+              "round": 7,
+              "mean": 0.2125037037037037,
+              "n": 27
+            },
+            {
+              "round": 8,
+              "mean": 0.22577999999999998,
+              "n": 25
+            },
+            {
+              "round": 9,
+              "mean": 0.353536,
+              "n": 25
+            },
+            {
+              "round": 10,
+              "mean": 0.38262307692307684,
+              "n": 26
+            }
+          ],
+          "action_types": {
+            "create_post": 64,
+            "do_nothing": 23,
+            "quote_post": 15,
+            "search_posts": 25,
+            "report_post": 12,
+            "dislike_post": 41,
+            "repost": 13,
+            "like_post": 63,
+            "create_comment": 12,
+            "trend": 4,
+            "refresh": 8,
+            "dislike_comment": 7,
+            "like_comment": 15
+          },
+          "total_actions": 302,
+          "n_action_types": 13,
+          "mean_sentiment": 0.1990197999037999
+        },
+        "openai": {
+          "sim_id": "a10980a3-48fe-49f2-a39c-3b37346e2195",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 346,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.1197,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.17865999999999999,
+              "n": 40
+            },
+            {
+              "round": 2,
+              "mean": 0.2857351851851852,
+              "n": 54
+            },
+            {
+              "round": 3,
+              "mean": 0.5415272727272726,
+              "n": 33
+            },
+            {
+              "round": 4,
+              "mean": 0.3700375000000001,
+              "n": 32
+            },
+            {
+              "round": 5,
+              "mean": 0.08019090909090909,
+              "n": 33
+            },
+            {
+              "round": 6,
+              "mean": 0.21075357142857146,
+              "n": 28
+            },
+            {
+              "round": 7,
+              "mean": 0.3518235294117647,
+              "n": 34
+            },
+            {
+              "round": 8,
+              "mean": 0.319765625,
+              "n": 32
+            },
+            {
+              "round": 9,
+              "mean": 0.5315096774193548,
+              "n": 31
+            },
+            {
+              "round": 10,
+              "mean": 0.3334148148148149,
+              "n": 27
+            }
+          ],
+          "action_types": {
+            "create_post": 27,
+            "report_post": 24,
+            "repost": 31,
+            "dislike_post": 20,
+            "create_comment": 128,
+            "quote_post": 14,
+            "like_post": 2,
+            "do_nothing": 59,
+            "refresh": 2,
+            "create_group": 2,
+            "send_to_group": 14,
+            "join_group": 23
+          },
+          "total_actions": 346,
+          "n_action_types": 12,
+          "mean_sentiment": 0.30210164409798845
+        },
+        "anthropic": {
+          "sim_id": "267ac461-0a5d-47cf-8f17-cffe264240ea",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5-20250929",
+          "rounds": 10,
+          "current_round": 7,
+          "actions_count": 217,
+          "note": "Partial run \u2014 orchestrator timed out at round 7/10. Subprocess terminated. Trajectory uses available rounds.",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.1197,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.22243870967741936,
+              "n": 31
+            },
+            {
+              "round": 2,
+              "mean": 0.31047647058823524,
+              "n": 34
+            },
+            {
+              "round": 3,
+              "mean": 0.18359736842105265,
+              "n": 38
+            },
+            {
+              "round": 4,
+              "mean": 0.2251913043478261,
+              "n": 23
+            },
+            {
+              "round": 5,
+              "mean": 0.24102121212121214,
+              "n": 33
+            },
+            {
+              "round": 6,
+              "mean": 0.18860689655172413,
+              "n": 29
+            },
+            {
+              "round": 7,
+              "mean": 0.24653703703703708,
+              "n": 27
+            }
+          ],
+          "action_types": {
+            "create_post": 42,
+            "create_comment": 38,
+            "quote_post": 19,
+            "do_nothing": 71,
+            "report_post": 1,
+            "like_comment": 13,
+            "refresh": 4,
+            "like_post": 12,
+            "dislike_post": 6,
+            "search_posts": 7,
+            "search_user": 3,
+            "follow": 1
+          },
+          "total_actions": 217,
+          "n_action_types": 12,
+          "mean_sentiment": 0.21719612484306333
+        }
+      },
+      "ground_truth": {
+        "n": 97,
+        "mean": 0.3793134020618556
+      },
+      "comparisons": {
+        "gemini": {
+          "sim_mean": 0.1990197999037999,
+          "gt_mean": 0.3793134020618556,
+          "mae_overall": 0.1802936021580557,
+          "directional_agreement": true,
+          "trajectory_pearson": null
+        },
+        "openai": {
+          "sim_mean": 0.30210164409798845,
+          "gt_mean": 0.3793134020618556,
+          "mae_overall": 0.07721175796386714,
+          "directional_agreement": true,
+          "trajectory_pearson": null
+        },
+        "anthropic": {
+          "sim_mean": 0.21719612484306333,
+          "gt_mean": 0.3793134020618556,
+          "mae_overall": 0.16211727721879227,
+          "directional_agreement": true,
+          "trajectory_pearson": null
+        }
+      },
+      "cross_provider": {
+        "n_providers": 3,
+        "mean_of_means": 0.2394391896149506,
+        "stdev_of_means": 0.044926103017091816,
+        "min": 0.1990197999037999,
+        "max": 0.30210164409798845
+      },
+      "nba_predictions": {}
+    },
+    {
+      "key": "nothing_4a_pro",
+      "title": "Nothing Phone (4a) Pro",
+      "domain": "marketing_positive",
+      "mode": "backtest",
+      "entity_id": "810e0f03-f236-4fba-80de-0dc34cfc5114",
+      "providers": {
+        "gemini": {
+          "sim_id": "2014cbf3-36a4-4c21-ac90-3cacc5c07714",
+          "provider": "gemini",
+          "model": "gemini-2.5-flash-lite",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 344,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.1356,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.3849499999999999,
+              "n": 44
+            },
+            {
+              "round": 2,
+              "mean": 0.5588166666666669,
+              "n": 54
+            },
+            {
+              "round": 3,
+              "mean": 0.5426634146341464,
+              "n": 41
+            },
+            {
+              "round": 4,
+              "mean": 0.57238125,
+              "n": 32
+            },
+            {
+              "round": 5,
+              "mean": 0.6185807692307692,
+              "n": 26
+            },
+            {
+              "round": 6,
+              "mean": 0.6103566666666665,
+              "n": 30
+            },
+            {
+              "round": 7,
+              "mean": 0.4253999999999999,
+              "n": 30
+            },
+            {
+              "round": 8,
+              "mean": 0.4873774193548386,
+              "n": 31
+            },
+            {
+              "round": 9,
+              "mean": 0.5391919999999999,
+              "n": 25
+            },
+            {
+              "round": 10,
+              "mean": 0.5446931034482757,
+              "n": 29
+            }
+          ],
+          "action_types": {
+            "create_post": 58,
+            "search_posts": 11,
+            "like_post": 173,
+            "do_nothing": 18,
+            "create_comment": 20,
+            "quote_post": 26,
+            "like_comment": 23,
+            "repost": 5,
+            "trend": 3,
+            "refresh": 5,
+            "dislike_post": 2
+          },
+          "total_actions": 344,
+          "n_action_types": 11,
+          "mean_sentiment": 0.49272829909103294
+        },
+        "openai": {
+          "sim_id": "74b373b9-cf8e-4438-8ceb-45ba9ecf9ae6",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 334,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.1356,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.5346362068965518,
+              "n": 58
+            },
+            {
+              "round": 2,
+              "mean": 0.0,
+              "n": 28
+            },
+            {
+              "round": 3,
+              "mean": 0.17365652173913046,
+              "n": 23
+            },
+            {
+              "round": 4,
+              "mean": 0.3432096774193548,
+              "n": 31
+            },
+            {
+              "round": 5,
+              "mean": 0.261971052631579,
+              "n": 38
+            },
+            {
+              "round": 6,
+              "mean": 0.051837499999999995,
+              "n": 32
+            },
+            {
+              "round": 7,
+              "mean": 0.11505161290322581,
+              "n": 31
+            },
+            {
+              "round": 8,
+              "mean": 0.31378378378378374,
+              "n": 37
+            },
+            {
+              "round": 9,
+              "mean": 0.1657357142857143,
+              "n": 28
+            },
+            {
+              "round": 10,
+              "mean": 0.12648076923076926,
+              "n": 26
+            }
+          ],
+          "action_types": {
+            "create_post": 15,
+            "repost": 21,
+            "create_comment": 60,
+            "like_post": 37,
+            "quote_post": 7,
+            "send_to_group": 3,
+            "do_nothing": 191
+          },
+          "total_actions": 334,
+          "n_action_types": 7,
+          "mean_sentiment": 0.20199662171728264
+        },
+        "anthropic": {
+          "sim_id": "8346ec21-08d8-4460-99ff-0847a2dbdf9d",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5-20250929",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 318,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.1356,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.3513948717948718,
+              "n": 39
+            },
+            {
+              "round": 2,
+              "mean": 0.2620382352941176,
+              "n": 34
+            },
+            {
+              "round": 3,
+              "mean": 0.19029285714285712,
+              "n": 28
+            },
+            {
+              "round": 4,
+              "mean": 0.14575625,
+              "n": 32
+            },
+            {
+              "round": 5,
+              "mean": 0.13634193548387097,
+              "n": 31
+            },
+            {
+              "round": 6,
+              "mean": 0.14180285714285717,
+              "n": 35
+            },
+            {
+              "round": 7,
+              "mean": 0.175004,
+              "n": 25
+            },
+            {
+              "round": 8,
+              "mean": 0.11992258064516129,
+              "n": 31
+            },
+            {
+              "round": 9,
+              "mean": 0.02142857142857143,
+              "n": 28
+            },
+            {
+              "round": 10,
+              "mean": 0.0,
+              "n": 33
+            }
+          ],
+          "action_types": {
+            "create_post": 21,
+            "quote_post": 11,
+            "create_comment": 27,
+            "like_post": 15,
+            "repost": 4,
+            "do_nothing": 225,
+            "like_comment": 13,
+            "search_posts": 1,
+            "refresh": 1
+          },
+          "total_actions": 318,
+          "n_action_types": 9,
+          "mean_sentiment": 0.1526892871756643
+        }
+      },
+      "ground_truth": {
+        "n": 87,
+        "mean": 0.2495149425287357
+      },
+      "comparisons": {
+        "gemini": {
+          "sim_mean": 0.49272829909103294,
+          "gt_mean": 0.2495149425287357,
+          "mae_overall": 0.24321335656229723,
+          "directional_agreement": true,
+          "trajectory_pearson": null
+        },
+        "openai": {
+          "sim_mean": 0.20199662171728264,
+          "gt_mean": 0.2495149425287357,
+          "mae_overall": 0.047518320811453074,
+          "directional_agreement": true,
+          "trajectory_pearson": null
+        },
+        "anthropic": {
+          "sim_mean": 0.1526892871756643,
+          "gt_mean": 0.2495149425287357,
+          "mae_overall": 0.09682565535307142,
+          "directional_agreement": true,
+          "trajectory_pearson": null
+        }
+      },
+      "cross_provider": {
+        "n_providers": 3,
+        "mean_of_means": 0.28247140266132664,
+        "stdev_of_means": 0.15003060839284085,
+        "min": 0.1526892871756643,
+        "max": 0.49272829909103294
+      },
+      "nba_predictions": {}
+    },
+    {
+      "key": "hochul_climate",
+      "title": "NY Climate Law Standoff",
+      "domain": "political",
+      "mode": "backtest",
+      "entity_id": "ad5f6dd2-f89e-4a75-bd57-1faa539aeb8f",
+      "providers": {
+        "gemini": {
+          "sim_id": "41ca6693-0c35-4839-97fb-8eaa2d47618b",
+          "provider": "gemini",
+          "model": "gemini-2.5-flash-lite",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 304,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.2732,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.20427499999999996,
+              "n": 32
+            },
+            {
+              "round": 2,
+              "mean": -0.14602830188679242,
+              "n": 53
+            },
+            {
+              "round": 3,
+              "mean": -0.023985714285714287,
+              "n": 42
+            },
+            {
+              "round": 4,
+              "mean": 0.011524999999999994,
+              "n": 24
+            },
+            {
+              "round": 5,
+              "mean": 0.13746296296296295,
+              "n": 27
+            },
+            {
+              "round": 6,
+              "mean": -0.15588333333333335,
+              "n": 24
+            },
+            {
+              "round": 7,
+              "mean": -0.022408333333333322,
+              "n": 24
+            },
+            {
+              "round": 8,
+              "mean": 0.07438846153846156,
+              "n": 26
+            },
+            {
+              "round": 9,
+              "mean": -0.049140909090909075,
+              "n": 22
+            },
+            {
+              "round": 10,
+              "mean": -0.04706071428571427,
+              "n": 28
+            }
+          ],
+          "action_types": {
+            "create_post": 50,
+            "dislike_post": 97,
+            "like_post": 49,
+            "quote_post": 25,
+            "repost": 14,
+            "do_nothing": 5,
+            "search_posts": 6,
+            "report_post": 5,
+            "create_comment": 16,
+            "dislike_comment": 12,
+            "like_comment": 18,
+            "follow": 2,
+            "refresh": 4,
+            "undo_dislike_post": 1
+          },
+          "total_actions": 304,
+          "n_action_types": 14,
+          "mean_sentiment": 0.0233040107532389
+        },
+        "openai": {
+          "sim_id": "298f55fa-bcc1-40d1-9fd9-1a13f1defcf2",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 301,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.2732,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.10511764705882354,
+              "n": 34
+            },
+            {
+              "round": 2,
+              "mean": 0.2752035714285714,
+              "n": 28
+            },
+            {
+              "round": 3,
+              "mean": 0.0,
+              "n": 21
+            },
+            {
+              "round": 4,
+              "mean": 0.043258064516129034,
+              "n": 31
+            },
+            {
+              "round": 5,
+              "mean": 0.16284848484848488,
+              "n": 33
+            },
+            {
+              "round": 6,
+              "mean": 0.006242424242424246,
+              "n": 33
+            },
+            {
+              "round": 7,
+              "mean": 0.12685555555555555,
+              "n": 27
+            },
+            {
+              "round": 8,
+              "mean": 0.11792258064516128,
+              "n": 31
+            },
+            {
+              "round": 9,
+              "mean": 0.08859310344827585,
+              "n": 29
+            },
+            {
+              "round": 10,
+              "mean": 0.180228125,
+              "n": 32
+            }
+          ],
+          "action_types": {
+            "create_post": 15,
+            "dislike_post": 23,
+            "create_comment": 51,
+            "like_post": 18,
+            "quote_post": 14,
+            "repost": 15,
+            "do_nothing": 164,
+            "refresh": 1
+          },
+          "total_actions": 301,
+          "n_action_types": 8,
+          "mean_sentiment": 0.12540632334031143
+        },
+        "anthropic": {
+          "sim_id": "f276ea74-5e9a-4392-97f0-f591fd6a5789",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5-20250929",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 297,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.2732,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.10433448275862069,
+              "n": 29
+            },
+            {
+              "round": 2,
+              "mean": -0.011218181818181827,
+              "n": 33
+            },
+            {
+              "round": 3,
+              "mean": 0.08738823529411766,
+              "n": 34
+            },
+            {
+              "round": 4,
+              "mean": 0.03567499999999999,
+              "n": 28
+            },
+            {
+              "round": 5,
+              "mean": -0.03056,
+              "n": 25
+            },
+            {
+              "round": 6,
+              "mean": -0.048825925925925925,
+              "n": 27
+            },
+            {
+              "round": 7,
+              "mean": 0.05091999999999999,
+              "n": 25
+            },
+            {
+              "round": 8,
+              "mean": 0.2655771428571429,
+              "n": 35
+            },
+            {
+              "round": 9,
+              "mean": 0.11124687500000001,
+              "n": 32
+            },
+            {
+              "round": 10,
+              "mean": 0.0,
+              "n": 27
+            }
+          ],
+          "action_types": {
+            "create_post": 13,
+            "like_post": 23,
+            "quote_post": 12,
+            "do_nothing": 205,
+            "create_comment": 21,
+            "like_comment": 13,
+            "dislike_post": 6,
+            "dislike_comment": 1,
+            "repost": 2,
+            "search_posts": 1
+          },
+          "total_actions": 297,
+          "n_action_types": 10,
+          "mean_sentiment": 0.07615796619688849
+        }
+      },
+      "ground_truth": {
+        "n": 101,
+        "mean": -0.11620891089108916
+      },
+      "comparisons": {
+        "gemini": {
+          "sim_mean": 0.0233040107532389,
+          "gt_mean": -0.11620891089108916,
+          "mae_overall": 0.13951292164432805,
+          "directional_agreement": false,
+          "trajectory_pearson": null
+        },
+        "openai": {
+          "sim_mean": 0.12540632334031143,
+          "gt_mean": -0.11620891089108916,
+          "mae_overall": 0.24161523423140058,
+          "directional_agreement": false,
+          "trajectory_pearson": null
+        },
+        "anthropic": {
+          "sim_mean": 0.07615796619688849,
+          "gt_mean": -0.11620891089108916,
+          "mae_overall": 0.19236687708797764,
+          "directional_agreement": false,
+          "trajectory_pearson": null
+        }
+      },
+      "cross_provider": {
+        "n_providers": 3,
+        "mean_of_means": 0.07495610009681293,
+        "stdev_of_means": 0.04169175714294094,
+        "min": 0.0233040107532389,
+        "max": 0.12540632334031143
+      },
+      "nba_predictions": {}
+    },
+    {
+      "key": "nba_mvp_2026",
+      "title": "2026 NBA Finals Forecast",
+      "domain": "sports_forward",
+      "mode": "forward",
+      "entity_id": "ec91086f-93e7-4750-bac1-7c75908f9877",
+      "providers": {
+        "gemini": {
+          "sim_id": "63d2c8eb-a1ab-429f-97c8-368d1c9ee2e5",
+          "provider": "gemini",
+          "model": "gemini-2.5-flash-lite",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 377,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.8885,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.5495560000000003,
+              "n": 50
+            },
+            {
+              "round": 2,
+              "mean": 0.586531147540984,
+              "n": 61
+            },
+            {
+              "round": 3,
+              "mean": 0.5844641025641027,
+              "n": 39
+            },
+            {
+              "round": 4,
+              "mean": 0.5644567567567569,
+              "n": 37
+            },
+            {
+              "round": 5,
+              "mean": 0.5592272727272728,
+              "n": 33
+            },
+            {
+              "round": 6,
+              "mean": 0.5336838709677418,
+              "n": 31
+            },
+            {
+              "round": 7,
+              "mean": 0.524558620689655,
+              "n": 29
+            },
+            {
+              "round": 8,
+              "mean": 0.5829228571428571,
+              "n": 35
+            },
+            {
+              "round": 9,
+              "mean": 0.5723064516129032,
+              "n": 31
+            },
+            {
+              "round": 10,
+              "mean": 0.5778068965517241,
+              "n": 29
+            }
+          ],
+          "action_types": {
+            "create_post": 40,
+            "like_post": 232,
+            "do_nothing": 15,
+            "search_posts": 3,
+            "repost": 8,
+            "create_comment": 25,
+            "quote_post": 20,
+            "refresh": 1,
+            "like_comment": 32,
+            "trend": 1
+          },
+          "total_actions": 377,
+          "n_action_types": 10,
+          "mean_sentiment": 0.5930921796867271
+        },
+        "openai": {
+          "sim_id": "2c1d8c86-a04b-47cf-b1f6-abcd5a30aa4f",
+          "provider": "openai",
+          "model": "gpt-4o-mini",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 394,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.8885,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.44776333333333324,
+              "n": 60
+            },
+            {
+              "round": 2,
+              "mean": 0.5324456140350877,
+              "n": 57
+            },
+            {
+              "round": 3,
+              "mean": 0.14173666666666668,
+              "n": 30
+            },
+            {
+              "round": 4,
+              "mean": 0.19636341463414636,
+              "n": 41
+            },
+            {
+              "round": 5,
+              "mean": 0.0,
+              "n": 33
+            },
+            {
+              "round": 6,
+              "mean": 0.0,
+              "n": 28
+            },
+            {
+              "round": 7,
+              "mean": 0.0,
+              "n": 31
+            },
+            {
+              "round": 8,
+              "mean": 0.12063703703703704,
+              "n": 27
+            },
+            {
+              "round": 9,
+              "mean": 0.32571749999999994,
+              "n": 40
+            },
+            {
+              "round": 10,
+              "mean": 0.36871777777777776,
+              "n": 45
+            }
+          ],
+          "action_types": {
+            "create_post": 10,
+            "create_comment": 95,
+            "join_group": 7,
+            "repost": 33,
+            "send_to_group": 7,
+            "like_post": 31,
+            "quote_post": 7,
+            "do_nothing": 204
+          },
+          "total_actions": 394,
+          "n_action_types": 8,
+          "mean_sentiment": 0.27471648577127716
+        },
+        "anthropic": {
+          "sim_id": "b2a26e6e-ceb4-4275-a071-ec8572787343",
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5-20250929",
+          "rounds": 10,
+          "current_round": 10,
+          "actions_count": 294,
+          "note": "",
+          "trajectory": [
+            {
+              "round": 0,
+              "mean": 0.8885,
+              "n": 2
+            },
+            {
+              "round": 1,
+              "mean": 0.1113857142857143,
+              "n": 28
+            },
+            {
+              "round": 2,
+              "mean": 0.06831481481481481,
+              "n": 27
+            },
+            {
+              "round": 3,
+              "mean": 0.02445625,
+              "n": 32
+            },
+            {
+              "round": 4,
+              "mean": 0.053720000000000004,
+              "n": 30
+            },
+            {
+              "round": 5,
+              "mean": 0.09363030303030302,
+              "n": 33
+            },
+            {
+              "round": 6,
+              "mean": 0.0,
+              "n": 26
+            },
+            {
+              "round": 7,
+              "mean": 0.0,
+              "n": 24
+            },
+            {
+              "round": 8,
+              "mean": 0.0,
+              "n": 33
+            },
+            {
+              "round": 9,
+              "mean": 0.0,
+              "n": 29
+            },
+            {
+              "round": 10,
+              "mean": 0.0,
+              "n": 30
+            }
+          ],
+          "action_types": {
+            "create_post": 3,
+            "create_comment": 15,
+            "like_post": 3,
+            "do_nothing": 269,
+            "repost": 1,
+            "like_comment": 3
+          },
+          "total_actions": 294,
+          "n_action_types": 6,
+          "mean_sentiment": 0.11272791655734836
+        }
+      },
+      "ground_truth": {
+        "n": 0,
+        "mean": null
+      },
+      "comparisons": {},
+      "cross_provider": {
+        "n_providers": 3,
+        "mean_of_means": 0.3268455273384509,
+        "stdev_of_means": 0.1995420324208943,
+        "min": 0.11272791655734836,
+        "max": 0.5930921796867271
+      },
+      "nba_predictions": {
+        "gemini": {
+          "team_mentions": {
+            "Lakers": 25,
+            "Bucks": 1,
+            "Mavericks": 1
+          },
+          "player_mentions": {
+            "LeBron": 23,
+            "Jokic": 13,
+            "Mitchell": 7,
+            "Giannis": 6,
+            "Luka": 5,
+            "Doncic": 3,
+            "Antetokounmpo": 1
+          },
+          "win_phrases_sample": [
+            "As a Lakers fan, I'm hoping to see the Los Angeles Lakers compete for the championship",
+            "I'm calling it now, LeBron and the Lakers are bringing home the championship, and he'll snag that Finals MVP",
+            "\ud83d\udc9c\ud83d\udc9b #LakersNation #NBAChampionships",
+            "When the Lakers are playing, I'm all in, celebrating every series win and every successful round",
+            "I'm hoping to see the Los Angeles Lakers competing for the championship"
+          ],
+          "mvp_phrases_sample": [
+            "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+            "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+            "The 2026 NBA MVP race is heating up",
+            "#NBAMVP2026",
+            "Any predictions for Finals MVP"
+          ]
+        },
+        "openai": {
+          "team_mentions": {
+            "Lakers": 41,
+            "Nuggets": 12,
+            "Warriors": 5,
+            "Mavericks": 5,
+            "Bucks": 4,
+            "Celtics": 2
+          },
+          "player_mentions": {
+            "LeBron": 36,
+            "Jokic": 14,
+            "Luka": 12,
+            "Doncic": 6,
+            "Giannis": 4,
+            "Curry": 4,
+            "Mitchell": 3
+          },
+          "win_phrases_sample": [
+            "I think the Los Angeles Lakers have what it takes to make a strong push for the championship this year",
+            "With the recent playoff performances, I'm leaning towards the Nuggets taking the championship this year",
+            "I believe the championship will go to the Golden State Warriors, and I'm rooting for Steph Curry to grab the Finals MVP",
+            "I'm rooting for the Nuggets to take the championship again with Jokic as the Finals MVP",
+            "I believe the Lakers have a strong chance at winning the championship this year"
+          ],
+          "mvp_phrases_sample": [
+            "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+            "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+            "What are your thoughts on the narratives surrounding MVP races this postseason",
+            "I see a strong possibility for the Bucks to take it all, with Giannis making a compelling case for Finals MVP given his playoff performances this year",
+            "With the right matchups and playoff form, we could see an awesome Finals MVP from our squad"
+          ]
+        },
+        "anthropic": {
+          "team_mentions": {
+            "Lakers": 5,
+            "Celtics": 2
+          },
+          "player_mentions": {
+            "Luka": 3,
+            "LeBron": 3,
+            "Mitchell": 2
+          },
+          "win_phrases_sample": [],
+          "mvp_phrases_sample": [
+            "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+            "Discuss who will win the championship and who will win Finals MVP, citing recent playoff form and matchups",
+            "\ud83d\udd25 I've been tracking the MVP race all season and whoever takes Finals MVP in 2026 is gonna be LEGENDARY",
+            "I'm really curious to see if someone like Luka can finally break through and get that Finals MVP, or if we'll see another dominant performance from one of the established stars",
+            "For Finals MVP, you have to look at who's been elevating their game in clutch moments - that's"
+          ]
+        }
+      }
+    }
+  ]
+}
