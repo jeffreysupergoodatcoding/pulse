@@ -7,6 +7,8 @@ from flask import Blueprint, jsonify, request
 
 from app.services.ingestion_service import ingestion_service
 from app.services.corpus_drift_detector import corpus_drift_detector
+from app.services.byo_upload_service import byo_upload_service
+from app.services.entity_store import entity_store
 from app.utils.task_manager import task_manager
 
 ingestion_bp = Blueprint("ingestion", __name__)
@@ -89,6 +91,78 @@ def preview(entity_id: str):
     limit = int(request.args.get("limit", 20))
     records = ingestion_service.read_queue(entity_id, limit)
     return jsonify({"entity_id": entity_id, "records": records, "count": len(records)})
+
+
+@ingestion_bp.post("/upload")
+def upload():
+    """
+    POST /api/ingestion/upload
+    Multipart form with:
+      - entity_id        (str, required)
+      - file             (the JSONL or CSV file)
+      - file_format      (optional; auto-detected from extension if absent)
+      - column_mapping   (optional JSON string for CSV)
+      - default_platform (optional, defaults to "uploaded")
+
+    Returns: {records_added, records_skipped, errors[], output_path}
+    Synchronous (file-bounded work; no task queue).
+    """
+    import json as _json
+    import os as _os
+    import tempfile
+
+    entity_id = request.form.get("entity_id") or (request.get_json(silent=True) or {}).get("entity_id")
+    if not entity_id:
+        return jsonify({"error": "entity_id is required"}), 400
+    if not entity_store.get(entity_id):
+        return jsonify({"error": f"entity {entity_id} not found"}), 404
+
+    f = request.files.get("file")
+    if f is None:
+        return jsonify({"error": "file (multipart upload) is required"}), 400
+
+    # Determine format
+    fmt = (request.form.get("file_format") or "").lower().strip()
+    if not fmt:
+        name = (f.filename or "").lower()
+        if name.endswith(".jsonl") or name.endswith(".ndjson"):
+            fmt = "jsonl"
+        elif name.endswith(".csv"):
+            fmt = "csv"
+        else:
+            return jsonify({"error": "could not infer file_format; pass file_format=jsonl|csv"}), 400
+
+    cm_raw = request.form.get("column_mapping")
+    column_mapping = None
+    if cm_raw:
+        try:
+            column_mapping = _json.loads(cm_raw)
+            if not isinstance(column_mapping, dict):
+                raise ValueError("column_mapping must be a JSON object")
+        except (ValueError, _json.JSONDecodeError) as exc:
+            return jsonify({"error": f"invalid column_mapping: {exc}"}), 400
+
+    default_platform = request.form.get("default_platform", "uploaded")
+
+    # Save to temp and process
+    suffix = ".jsonl" if fmt == "jsonl" else ".csv"
+    fd, tmp_path = tempfile.mkstemp(suffix=suffix)
+    try:
+        with _os.fdopen(fd, "wb") as out_fh:
+            f.save(out_fh)
+        result = byo_upload_service.ingest_uploaded_file(
+            entity_id=entity_id,
+            file_path=tmp_path,
+            file_format=fmt,
+            column_mapping=column_mapping,
+            default_platform=default_platform,
+        )
+    finally:
+        try:
+            _os.unlink(tmp_path)
+        except OSError:
+            pass
+    return jsonify(result)
 
 
 @ingestion_bp.get("/twitter/check")

@@ -86,11 +86,13 @@ const navItems = [
   { name: 'graph',      path: 'graph',      label: 'Graph',    icon: '◎' },
   { name: 'personas',   path: 'personas',   label: 'Personas', icon: '◈' },
   { name: 'simulation', path: 'simulation', label: 'Simulate', icon: '▷' },
+  { name: 'audience',   path: 'audience',   label: 'Audience', icon: '◐' },
 ]
 
 const LABELS = {
   graph: 'Graph', ingest: 'Ingest', personas: 'Personas',
-  simulation: 'Simulate', report: 'Report', interact: 'Chat', home: 'Home',
+  simulation: 'Simulate', report: 'Report', interact: 'Chat',
+  audience: 'Audience', home: 'Home',
 }
 
 const routeLabel = computed(() => LABELS[route.name] || route.name || '')

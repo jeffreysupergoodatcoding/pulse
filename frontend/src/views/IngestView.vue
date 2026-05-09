@@ -19,6 +19,11 @@
         :class="{ active: mode === 'manual' }"
         @click="mode = 'manual'"
       >Manual</button>
+      <button
+        class="mode-btn"
+        :class="{ active: mode === 'upload' }"
+        @click="mode = 'upload'"
+      >Upload</button>
     </div>
 
     <!-- Slim progress bar (shown during pull) -->
@@ -151,6 +156,82 @@
       </div>
     </div>
 
+    <!-- ── UPLOAD MODE ────────────────────────────── -->
+    <div v-if="mode === 'upload'" class="ingest-grid">
+      <div class="card">
+        <div class="card-label">Upload Data</div>
+        <p class="auto-desc">
+          Bring your own data — drop a <strong>JSONL</strong> or <strong>CSV</strong> file
+          conforming to the PostRecord schema. Once uploaded, the data is indistinguishable
+          from API-ingested data downstream (graph, personas, simulation, audience discovery).
+        </p>
+
+        <p class="auto-desc">
+          <strong>Required fields per row:</strong> <code>id</code>, <code>content</code>, <code>created_at</code>.
+          Recommended: <code>platform</code>, <code>author_id</code> (will be SHA-256 anonymized),
+          <code>engagement</code> object with likes/shares/replies/views.
+        </p>
+
+        <div class="upload-dropzone"
+             :class="{ active: uploadDragOver }"
+             @dragover.prevent="uploadDragOver = true"
+             @dragleave.prevent="uploadDragOver = false"
+             @drop.prevent="onUploadDrop">
+          <input ref="uploadInput" type="file" accept=".jsonl,.ndjson,.csv" @change="onUploadFileChosen" style="display:none" />
+          <div v-if="!uploadFile" class="upload-placeholder">
+            <div class="upload-icon">⬆</div>
+            <div class="upload-text">
+              <strong>Drop file here</strong> or
+              <button class="link-btn" @click="$refs.uploadInput.click()">browse</button>
+            </div>
+            <div class="upload-hint">Accepts .jsonl, .ndjson, .csv (up to ~100MB)</div>
+          </div>
+          <div v-else class="upload-selected">
+            <div class="upload-filename">{{ uploadFile.name }}</div>
+            <div class="upload-meta">{{ (uploadFile.size / 1024).toFixed(1) }} KB · {{ uploadFile.type || 'auto-detected' }}</div>
+            <button class="link-btn" @click="uploadFile = null; uploadResult = null">change file</button>
+          </div>
+        </div>
+
+        <div class="auto-field" v-if="uploadFile">
+          <label>Default platform tag <span class="auto-hint">— used when records don't include a platform field</span></label>
+          <input v-model="uploadDefaultPlatform" placeholder="uploaded" />
+        </div>
+
+        <div class="pull-row">
+          <button class="btn btn-primary pull-btn" :disabled="!uploadFile || uploading" @click="runUpload">
+            {{ uploading ? 'Uploading…' : 'Upload' }}
+          </button>
+        </div>
+
+        <div v-if="uploadResult" class="upload-result">
+          <div class="upload-result-line"><strong>Records added:</strong> {{ uploadResult.records_added }}</div>
+          <div class="upload-result-line"><strong>Records skipped:</strong> {{ uploadResult.records_skipped }}</div>
+          <div v-if="uploadResult.errors?.length" class="upload-errors">
+            <div class="upload-errors-title">First {{ Math.min(uploadResult.errors.length, 5) }} errors:</div>
+            <ul>
+              <li v-for="(e, i) in uploadResult.errors.slice(0, 5)" :key="i">{{ e }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview card (shared) -->
+      <div class="card">
+        <div class="card-label-row">
+          <div class="card-label">Preview</div>
+          <button class="btn btn-secondary btn-sm" @click="loadPreview">Refresh</button>
+        </div>
+        <div v-if="preview.length" class="preview-list">
+          <div v-for="(p, i) in preview.slice(0, 10)" :key="i" class="preview-item">
+            <span class="preview-badge">{{ p.platform }}</span>
+            <span class="preview-text">{{ truncate(p.content, 120) }}</span>
+          </div>
+        </div>
+        <div v-else class="preview-empty">No ingested posts yet.</div>
+      </div>
+    </div>
+
     <!-- Build graph CTA banner -->
     <div class="build-graph-banner">
       <div class="build-graph-info">
@@ -216,6 +297,13 @@ const buildTaskId = ref('')
 const buildStatus = ref({})
 let pollTimer = null
 let buildPollTimer = null
+
+// Upload (BYO) state
+const uploadFile = ref(null)
+const uploadDragOver = ref(false)
+const uploadDefaultPlatform = ref('uploaded')
+const uploading = ref(false)
+const uploadResult = ref(null)
 
 const hasAnySources = computed(() =>
   Object.entries(enabled.value).some(([p, on]) => on && sources.value[p]?.trim())
@@ -312,6 +400,40 @@ async function loadPreview() {
     const r = await ingestionApi.preview(entityId, 20)
     preview.value = r.data.records || r.data.posts || r.data || []
   } catch { /* ignore */ }
+}
+
+function onUploadFileChosen(e) {
+  const f = e.target.files?.[0]
+  if (f) uploadFile.value = f
+}
+function onUploadDrop(e) {
+  uploadDragOver.value = false
+  const f = e.dataTransfer?.files?.[0]
+  if (f) uploadFile.value = f
+}
+
+async function runUpload() {
+  if (!uploadFile.value) return
+  uploading.value = true
+  uploadResult.value = null
+  try {
+    const name = uploadFile.value.name.toLowerCase()
+    const fileFormat = name.endsWith('.csv') ? 'csv' : 'jsonl'
+    const r = await ingestionApi.upload(entityId, uploadFile.value, {
+      fileFormat,
+      defaultPlatform: uploadDefaultPlatform.value || 'uploaded',
+    })
+    uploadResult.value = r.data
+    // Auto-refresh preview to show what got ingested
+    loadPreview()
+  } catch (e) {
+    uploadResult.value = {
+      records_added: 0, records_skipped: 0,
+      errors: [e.response?.data?.error || e.message],
+    }
+  } finally {
+    uploading.value = false
+  }
 }
 
 async function buildGraph() {
@@ -683,4 +805,48 @@ onMounted(async () => {
   margin-top: 6px;
   font-weight: 500;
 }
+
+/* Upload (BYO) styles */
+.upload-dropzone {
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 30px 20px;
+  text-align: center;
+  background: var(--bg-canvas);
+  margin: 14px 0;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.upload-dropzone.active {
+  border-color: var(--text-primary);
+  background: var(--bg-overlay);
+}
+.upload-icon {
+  font-size: 28px; color: var(--text-muted); margin-bottom: 8px;
+}
+.upload-text {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+}
+.upload-text strong { color: var(--text-primary); }
+.upload-hint { font-size: 11px; color: var(--text-faint); margin-top: 6px; }
+.upload-selected { font-size: 12px; color: var(--text-secondary); }
+.upload-filename { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.upload-meta { color: var(--text-faint); font-size: 11px; margin-bottom: 8px; font-family: var(--font-mono); }
+.link-btn {
+  background: none; border: none; color: var(--text-primary);
+  text-decoration: underline; cursor: pointer; padding: 0;
+  font-size: inherit; font-family: inherit;
+}
+.upload-result {
+  font-size: 12px; color: var(--text-secondary); margin-top: 14px;
+  border-top: 1px solid var(--border-subtle); padding-top: 12px;
+}
+.upload-result-line { margin-bottom: 4px; }
+.upload-errors {
+  margin-top: 10px;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.20);
+  padding: 8px 12px; border-radius: var(--radius-sm);
+}
+.upload-errors-title { font-weight: 600; color: var(--negative); font-size: 11px; margin-bottom: 4px; }
+.upload-errors ul { margin: 0; padding-left: 16px; font-size: 11px; }
 </style>

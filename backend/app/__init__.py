@@ -15,12 +15,14 @@ def create_app(config_class=Config):
     from app.routes.simulation_routes import simulation_bp
     from app.routes.report_routes import report_bp
     from app.routes.persona_routes import persona_bp
+    from app.routes.audience_routes import audience_bp
 
     app.register_blueprint(ingestion_bp, url_prefix="/api/ingestion")
     app.register_blueprint(graph_bp, url_prefix="/api/graph")
     app.register_blueprint(simulation_bp, url_prefix="/api/simulation")
     app.register_blueprint(report_bp, url_prefix="/api/report")
     app.register_blueprint(persona_bp, url_prefix="/api/persona")
+    app.register_blueprint(audience_bp, url_prefix="/api/audience")
 
     @app.get("/api/health")
     def health():
